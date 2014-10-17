@@ -47,6 +47,17 @@ namespace DeMIMOI_Models
         DeMIMOI_InputOutput[] CurrentOutputs;
         DeMIMOI_InputOutput[] CurrentInputs;
 
+        #region Events
+        /// <summary>
+        /// Event the occurs when one input/output of the <see cref="DeMIMOI"/> model is connected to another input/output
+        /// </summary>
+        public event DeMIMOI_ConnectionEventHandler Connected;
+        /// <summary>
+        /// Event the occurs when one input/output of the <see cref="DeMIMOI"/> model is disconnected to another input/output
+        /// </summary>
+        public event DeMIMOI_ConnectionEventHandler Disconnected;
+        #endregion
+
         /// <summary>
         /// Constructor for XmlSerialization purposes only
         /// </summary>
@@ -140,8 +151,20 @@ namespace DeMIMOI_Models
                 for (int j = 0; j < inputs_0n.Length; j++)
                 {
                     inputs_0n[j] = new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.INPUT);
+                    inputs_0n[j].Connected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Connected);
+                    inputs_0n[j].Disconnected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Disconnected);
                 }
                 Inputs.Add(inputs_0n);
+            }
+        }
+
+        void DeMIMOI_Connected(object sender, DeMIMOI_ConnectionEventArgs e)
+        {
+            // A Connected event occured on one of the DeMIMOI input or output
+            if (Connected != null)
+            {
+                // Pass this event as a DeMIMOI event
+                Connected(this, e);
             }
         }
         
@@ -165,8 +188,20 @@ namespace DeMIMOI_Models
                 for (int j = 0; j < outputs_0n.Length; j++)
                 {
                     outputs_0n[j] = new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.OUTPUT);
+                    outputs_0n[j].Connected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Connected);
+                    outputs_0n[j].Disconnected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Disconnected);
                 }
                 Outputs.Add(outputs_0n);
+            }
+        }
+
+        void DeMIMOI_Disconnected(object sender, DeMIMOI_ConnectionEventArgs e)
+        {
+            // A Disconnected event occured on one of the DeMIMOI input or output
+            if (Disconnected != null)
+            {
+                // Pass this event as a DeMIMOI event
+                Disconnected(this, e);
             }
         }
 
@@ -219,7 +254,11 @@ namespace DeMIMOI_Models
             // Set the output values for step n to the specified outputs
             for (int j = 0; j < OutputCount; j++)
             {
-                Outputs[0][j].Value = new_outputs[j].CloneValue();
+                // Only update outputs of type OUTPUT (for DeMIMOINeuralNetwork compatibility)
+                if (Outputs[0][j].Type == DeMIMOI_InputOutputType.OUTPUT)
+                {
+                    Outputs[0][j].Value = new_outputs[j].CloneValue();
+                }
             }
         }
 
@@ -334,7 +373,7 @@ namespace DeMIMOI_Models
             set;
         }
 
-        public void LatchOutputs()
+        public virtual void LatchOutputs()
         {
             // Publish the new outputs to the system outputs
             InjectOutputs(CurrentOutputs);
@@ -437,7 +476,7 @@ namespace DeMIMOI_Models
             code += "{";
             for (int i = 0; i < Inputs[0].Length; i++)
             {
-                code += "<i" + i + "> i" + i + "(t)";
+                code += "<i" + i + "> " + (Inputs[0][i].Name == "" ? "i" + i : Inputs[0][i].Name) + "(t)";
                 if (i < Inputs[0].Length - 1)
                 {
                     code += "|";
@@ -446,7 +485,7 @@ namespace DeMIMOI_Models
             code += "}|{" + Name + "}|{";
             for (int i = 0; i < Outputs[0].Length; i++)
             {
-                code += "<o" + i + "> o" + i + "(..)";
+                code += "<o" + i + "> " + (Outputs[0][i].Name == "" ? "o" + i : Outputs[0][i].Name) + "(..)";
                 if (i < Outputs[0].Length - 1)
                 {
                     code += "|";
@@ -454,42 +493,55 @@ namespace DeMIMOI_Models
             }
             code += "}}\"];\n";
 
-            for (int j = 0; j < Inputs.Count; j++)
-            {
-                for (int i = 0; i < Inputs[j].Length; i++)
-                {
-                    if (Inputs[j][i].ConnectedTo != null)
-                    {
-                        DeMIMOI ConnectedParent = Inputs[j][i].ConnectedTo.Parent;
-                        int connected_index = -1;
-                        int delay_offset = -1;
-                        for (int k = 0; k < ConnectedParent.Outputs.Count; k++)
-                        {
-                            for (int l = 0; l < ConnectedParent.Outputs[k].Length; l++)
-                            {
-                                if (ConnectedParent.Outputs[k][l].ID == Inputs[j][i].ConnectedTo.ID)
-                                {
-                                    connected_index = l;
-                                    delay_offset = k;
-                                }
-                            }
-                        }
-                        code += Inputs[j][i].ConnectedTo.Parent.Name.Replace(" ", "_") + "_" + Inputs[j][i].ConnectedTo.Parent.ID + ":o" + connected_index + " -> " + Name.Replace(" ", "_") + "_" + ID + ":i" + i;
-                        if (delay_offset > 0)
-                        {
-                            code += " [ label=\"t - " + delay_offset + "\" ]";
-                        }
-                        else
-                        {
-                            code += " [ label=\"t\" ]";
-                        }
-                        code += ";\n";
-                    }
-                }
-            }
+            code += GenerateLinkGraphVizCode(Inputs, DeMIMOI_InputOutputType.INPUT);
+            code += GenerateLinkGraphVizCode(Outputs, DeMIMOI_InputOutputType.OUTPUT);
 
             code += "\n";
 
+
+            return code;
+        }
+
+        private string GenerateLinkGraphVizCode(List<DeMIMOI_InputOutput[]> input_output, DeMIMOI_InputOutputType argument_type)
+        {
+            string code = "";
+
+            for (int j = 0; j < input_output.Count; j++)
+            {
+                for (int i = 0; i < input_output[j].Length; i++)
+                {
+                    if (input_output[j][i].ConnectedTo != null)
+                    {
+                        if (input_output[j][i].Type == DeMIMOI_InputOutputType.INPUT)
+                        {
+                            DeMIMOI ConnectedParent = input_output[j][i].ConnectedTo.Parent;
+                            int connected_index = -1;
+                            int delay_offset = -1;
+                            for (int k = 0; k < ConnectedParent.Outputs.Count; k++)
+                            {
+                                for (int l = 0; l < ConnectedParent.Outputs[k].Length; l++)
+                                {
+                                    if (ConnectedParent.Outputs[k][l].ID == input_output[j][i].ConnectedTo.ID)
+                                    {
+                                        connected_index = l;
+                                        delay_offset = k;
+                                    }
+                                }
+                            }
+                            code += input_output[j][i].ConnectedTo.Parent.Name.Replace(" ", "_") + "_" + input_output[j][i].ConnectedTo.Parent.ID + ":o" + connected_index + " -> " + Name.Replace(" ", "_") + "_" + ID + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":i" : ":o") + i;
+                            if (delay_offset > 0)
+                            {
+                                code += " [ label=\"t - " + delay_offset + "\" ]";
+                            }
+                            else
+                            {
+                                code += " [ label=\"t\" ]";
+                            }
+                            code += ";\n";
+                        }
+                    }
+                }
+            }
 
             return code;
         }

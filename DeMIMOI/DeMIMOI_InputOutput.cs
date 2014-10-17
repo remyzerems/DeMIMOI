@@ -55,6 +55,17 @@ namespace DeMIMOI_Models
         // Inner own Input/Output value
         object input_output_value;
 
+        #region Events
+        /// <summary>
+        /// Event the occurs when the input/output is connected to another one
+        /// </summary>
+        public event DeMIMOI_ConnectionEventHandler Connected;
+        /// <summary>
+        /// Event the occurs when the input/output is disconnected from another one
+        /// </summary>
+        public event DeMIMOI_ConnectionEventHandler Disconnected;
+        #endregion
+
         /// <summary>
         /// Initialize a DeMIMOI_InputOutput
         /// </summary>
@@ -68,6 +79,9 @@ namespace DeMIMOI_Models
 
             // No parent by default
             Parent = null;
+
+            // No name (i.e. default name will be used)
+            Name = "";
         }
 
         /// <summary>
@@ -113,6 +127,15 @@ namespace DeMIMOI_Models
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// DeMIMOI_InputOutput name
+        /// </summary>
+        public string Name
+        {
+            set;
+            get;
         }
 
         /// <summary>
@@ -193,12 +216,24 @@ namespace DeMIMOI_Models
             {
                 // Ok, connect the input to this output
                 input_output.ConnectedTo = this;
+
+                // If event signalling is required
+                if (Connected != null)
+                {
+                    Connected(this, new DeMIMOI_ConnectionEventArgs(this, input_output));
+                }
             } else {
                 // If it's an input and the argument is an output...
                 if (Type == DeMIMOI_InputOutputType.INPUT && input_output.Type == DeMIMOI_InputOutputType.OUTPUT)
                 {
                     // Ok, connect this to the given output
                     ConnectedTo = input_output;
+
+                    // If event signalling is required
+                    if (Connected != null)
+                    {
+                        Connected(this, new DeMIMOI_ConnectionEventArgs(input_output, this));
+                    }
                 }
                 else
                 {
@@ -217,8 +252,26 @@ namespace DeMIMOI_Models
             // If it's an input
             if (input.Type == DeMIMOI_InputOutputType.INPUT)
             {
+                DeMIMOI_ConnectionEventArgs eventArg = null;
+
+                // Before disconnecting, pick up the current value and set it to the input (i.e. once it has been disconnected, the input keeps the last value it had before disconnection)
+                input.input_output_value = input.ConnectedTo.Value;
+
+                // If event signalling is required
+                if (input.Disconnected != null)
+                {
+                    // Prepare the event args
+                    eventArg = new DeMIMOI_ConnectionEventArgs(input.ConnectedTo, input);
+                }
+
                 // Disconnect it
                 input.ConnectedTo = null;
+
+                // If event signalling is required
+                if (input.Disconnected != null)
+                {
+                    input.Disconnected(input, eventArg);
+                }
             }
             else
             {
@@ -256,6 +309,38 @@ namespace DeMIMOI_Models
             }
 
             return new_one;
+        }
+    }
+
+    public delegate void DeMIMOI_ConnectionEventHandler(object sender, DeMIMOI_ConnectionEventArgs e);
+
+    /// <summary>
+    /// DeMIMOI Connection Event Arguments to describe a connection/disconnection event of a <see cref="DeMIMOI_InputOutput"/>
+    /// </summary>
+    public class DeMIMOI_ConnectionEventArgs : EventArgs
+    {
+        public DeMIMOI_ConnectionEventArgs(DeMIMOI_InputOutput from, DeMIMOI_InputOutput to)
+        {
+            From = from;
+            To = to;
+        }
+
+        /// <summary>
+        /// Output from which the event has been thrown
+        /// </summary>
+        public DeMIMOI_InputOutput From
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Input from which the event has been thrown
+        /// </summary>
+        public DeMIMOI_InputOutput To
+        {
+            get;
+            set;
         }
     }
 }

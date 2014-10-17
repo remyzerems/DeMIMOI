@@ -25,6 +25,7 @@ using System.Xml.Serialization;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
+using TopologicalSorting;
 
 namespace DeMIMOI_Models
 {
@@ -43,6 +44,11 @@ namespace DeMIMOI_Models
             return current_id++;
         }
 
+        // Ask for topological map computation
+        [NonSerialized]
+        private IEnumerable<IEnumerable<OrderedProcess>> topological_order;
+        private bool refresh_topological_order = true;
+
         /// <summary>
         /// Initializes the collection
         /// </summary>
@@ -50,6 +56,31 @@ namespace DeMIMOI_Models
         {
             ID = AllocNewId();
             Name = "DeMIMOI_Collection_" + ID;
+        }
+
+        /// <summary>
+        /// Adds a <see cref="DeMIMOI"/> object to the collection
+        /// </summary>
+        /// <param name="item"><see cref="DeMIMOI"/> object to add</param>
+        public new void Add(DeMIMOI item)
+        {
+            base.Add(item);
+            if (item != null)
+            {
+                item.Connected += new DeMIMOI_ConnectionEventHandler(item_Connected);
+                item.Disconnected += new DeMIMOI_ConnectionEventHandler(item_Disconnected);
+                refresh_topological_order = true;
+            }
+        }
+
+        void item_Disconnected(object sender, DeMIMOI_ConnectionEventArgs e)
+        {
+            refresh_topological_order = true;
+        }
+
+        void item_Connected(object sender, DeMIMOI_ConnectionEventArgs e)
+        {
+            refresh_topological_order = true;
         }
 
         /// <summary>
@@ -73,6 +104,8 @@ namespace DeMIMOI_Models
             Name = name;
         }
 
+        
+
         /// <summary>
         /// Updates all the <see cref="DeMIMOI"/> objects of the collection
         /// </summary>
@@ -92,6 +125,122 @@ namespace DeMIMOI_Models
                     demimoi_model.Update();
                 });
             }
+        }
+
+        /// <summary>
+        /// Updates the <see cref="DeMIMOI"/> objects of the collection following its topological order
+        /// </summary>
+        public void UpdateAndLatchTopologically()
+        {
+            // If the models topology changed from last time
+            if (refresh_topological_order == true || topological_order == null)
+            {
+                // Ask for topological map computation
+                topological_order = ComputeTopologicalMap();
+
+                refresh_topological_order = false;
+            }
+
+            if (EnableMultithreading == false)
+            {
+                // Updates each model by its topological order (the one(s) which has to give its output first for the next ones to operate on it)
+                foreach(IEnumerable<OrderedProcess> orderedProcessList in topological_order)
+                {
+                    foreach (OrderedProcess orderedProcess in orderedProcessList)
+                    {
+                        int index = int.Parse(orderedProcess.Name);
+                        this[index].Update();
+                        this[index].LatchOutputs();
+                    }
+                }
+            }
+            else
+            {
+                foreach (IEnumerable<OrderedProcess> orderedProcessList in topological_order)
+                {
+                    Parallel.ForEach(orderedProcessList, orderedProcess =>
+                    {
+                        int index = int.Parse(orderedProcess.Name);
+                        this[index].Update();
+                        this[index].LatchOutputs();
+                    });
+                }
+                
+            }
+        }
+
+        /// <summary>
+        /// Computes the topological map of the models contained in the collection
+        /// </summary>
+        /// <returns>The topological map</returns>
+        private IEnumerable<IEnumerable<OrderedProcess>> ComputeTopologicalMap()
+        {
+            DependencyGraph g = new DependencyGraph();
+
+            OrderedProcess[] models = new OrderedProcess[Count];
+            for (int i = 0; i < models.Length; i++)
+            {
+                models[i] = new OrderedProcess(g, i.ToString());
+            }
+
+            // Navigate through all the models in the collection
+            for (int i = 0; i < models.Length; i++)
+            {
+                // Through all the delayed inputs
+                for (int j = 0; j < this[i].Inputs.Count; j++)
+                {
+                    // Through all the inputs of t-i
+                    for (int k = 0; k < this[i].Inputs[j].Length; k++)
+                    {
+                        // If the model is connected to another one
+                        if (this[i].Inputs[j][k].ConnectedTo != null)
+                        {
+                            // Get the index of that model and check if it's on the collection at the same time
+                            int connected_index = this.IndexOf(this[i].Inputs[j][k].ConnectedTo.Parent);
+                            // If it's in the collection and that it's not a connection to itself (i.e. cyclic connection)
+                            if (connected_index >= 0 && i != connected_index)
+                            {
+                                // Add it to the topological sort algorithm
+                                // Before, check the direction to determine who's before and who's after
+                                if (this[i].Inputs[j][k].Type == DeMIMOI_InputOutputType.INPUT)
+                                {
+                                    models[i].After(models[connected_index]);
+                                }
+                                else
+                                {
+                                    models[i].Before(models[connected_index]);
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+                // Do the same on outputs
+                for (int j = 0; j < this[i].Outputs.Count; j++)
+                {
+                    for (int k = 0; k < this[i].Outputs[j].Length; k++)
+                    {
+                        if (this[i].Outputs[j][k].ConnectedTo != null)
+                        {
+                            int connected_index = this.IndexOf(this[i].Outputs[j][k].ConnectedTo.Parent);
+                            if (connected_index >= 0 && i != connected_index)
+                            {
+                                if (this[i].Outputs[j][k].Type == DeMIMOI_InputOutputType.OUTPUT)
+                                {
+                                    models[i].Before(models[connected_index]);
+                                }
+                                else
+                                {
+                                    models[i].After(models[connected_index]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Return the topological map
+            return g.CalculateSort();
         }
 
         /// <summary>
