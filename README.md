@@ -29,7 +29,7 @@ It would be represented like this : o(t) = 2*i(t) with o(t) outputs at time t, i
 
 You have to code what's in the inside of the model (i.e. the function o(t) which creates outputs using the input).
 It would look like this :
-```
+```csharp
 using DeMIMOI_Models;
 
 class By2Multiplier:DeMIMOI
@@ -45,6 +45,7 @@ class By2Multiplier:DeMIMOI
         Outputs[0][0].Value = 0.0;
     }
     
+    // This function is called by the DeMIMOI model when asked to update the outputs
     protected override void UpdateInnerSystem(ref DeMIMOI_InputOutput[] new_outputs)
     {
         // Multiply the input by two
@@ -54,7 +55,7 @@ class By2Multiplier:DeMIMOI
 ```
 
 Then just call the update function of the model each time you present the model some new data, or at a specific refresh rate.
-```
+```csharp
 By2Multiplier myBy2Multiplier = new By2Multiplier();
 // Set the input to 5.0
 myBy2Multiplier.Inputs[0][0].Value = 5.0;
@@ -62,20 +63,20 @@ myBy2Multiplier.Inputs[0][0].Value = 5.0;
 myBy2Multiplier.UpdateAndLatch();
 ```
 You can access the calculated output.
-```
+```csharp
 double result = (double)myBy2Multiplier.Outputs[0][0].Value
 // Here result = 10.0
 ```
 
 The library also natively manages for you the past input/output data. So you can access the input or outputs at t-3, or t-7 for example.
-```
+```csharp
 double previous_value = (double)myBy2Multiplier.Inputs[1][0].Value
 // Here previous_value = 5.0 (i.e. the value Inputs[0][0].Value had at t-1)
 ```
 
 Now the most interesting part is that you can connect and disconnect on the fly models to each other.
 In the example above, you could connect (chain) three identical models, so you would obtain a multiplication by 8 between the input and the output of the chain.
-```
+```csharp
 By2Multiplier myBy2Multiplier0 = new By2Multiplier();
 By2Multiplier myBy2Multiplier1 = new By2Multiplier();
 By2Multiplier myBy2Multiplier2 = new By2Multiplier();

@@ -26,6 +26,7 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using TopologicalSorting;
+using System.Collections;
 
 namespace DeMIMOI_Models
 {
@@ -33,7 +34,7 @@ namespace DeMIMOI_Models
     /// DeMIMOI Collection class
     /// </summary>
     [Serializable]
-    public class DeMIMOI_Collection : List<DeMIMOI>, IDeMIMOI_Interface
+    public class DeMIMOI_Collection : IList<DeMIMOI>, IDeMIMOI_Interface
     {
         static int current_id = 0; // Current ID to allocate to a new DeMIMOI_Collection object
         /// <summary>
@@ -43,6 +44,8 @@ namespace DeMIMOI_Models
         {
             return current_id++;
         }
+
+        private IList<DeMIMOI> _collection = new List<DeMIMOI>();
 
         // Ask for topological map computation
         [NonSerialized]
@@ -58,13 +61,27 @@ namespace DeMIMOI_Models
             Name = "DeMIMOI_Collection_" + ID;
         }
 
+        #region Implementation of IEnumerable
+
+        public IEnumerator<DeMIMOI> GetEnumerator()
+        {
+            return _collection.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
         /// <summary>
         /// Adds a <see cref="DeMIMOI"/> object to the collection
         /// </summary>
         /// <param name="item"><see cref="DeMIMOI"/> object to add</param>
-        public new void Add(DeMIMOI item)
+        public void Add(DeMIMOI item)
         {
-            base.Add(item);
+            _collection.Add(item);
             if (item != null)
             {
                 item.Connected += new DeMIMOI_ConnectionEventHandler(item_Connected);
@@ -72,6 +89,92 @@ namespace DeMIMOI_Models
                 refresh_topological_order = true;
             }
         }
+
+        public void Clear()
+        {
+            foreach (DeMIMOI item in _collection)
+            {
+                _collection.Remove(item);
+            }
+            //_collection.Clear();
+        }
+
+        public bool Contains(DeMIMOI item)
+        {
+            return _collection.Contains(item);
+        }
+
+        public void CopyTo(DeMIMOI[] array, int arrayIndex)
+        {
+            _collection.CopyTo(array, arrayIndex);
+        }
+
+        public int Count
+        {
+            get { return _collection.Count; }
+        }
+
+        public bool IsReadOnly
+        {
+            get { return _collection.IsReadOnly; }
+        }
+
+        public void AddRange(IEnumerable<DeMIMOI> collection)
+        {
+            if (collection != null)
+            {
+                foreach (DeMIMOI item in collection)
+                {
+                    _collection.Add(item);
+                }
+            }
+        }
+
+        public void Insert(int index, DeMIMOI item)
+        {
+            _collection.Insert(index, item);
+            if (item != null)
+            {
+                item.Connected += new DeMIMOI_ConnectionEventHandler(item_Connected);
+                item.Disconnected += new DeMIMOI_ConnectionEventHandler(item_Disconnected);
+                refresh_topological_order = true;
+            }
+        }
+
+        public bool Remove(DeMIMOI item)
+        {
+            bool ret = _collection.Remove(item);
+            if (item != null)
+            {
+                item.Connected -= item_Connected;
+                item.Disconnected -= item_Disconnected;
+                refresh_topological_order = true;
+            }
+
+            return ret;
+        }
+
+        public void RemoveAt(int index)
+        {
+            if (index >= 0 && index < _collection.Count)
+            {
+                DeMIMOI item = _collection[index];
+                Remove(item);
+            }
+        }
+
+        public int IndexOf(DeMIMOI item)
+        {
+            return _collection.IndexOf(item);
+        }
+
+        public DeMIMOI this[int index]
+        {
+            get { return _collection[index]; }
+            set { _collection[index] = value; }
+        }
+
+
 
         void item_Disconnected(object sender, DeMIMOI_ConnectionEventArgs e)
         {

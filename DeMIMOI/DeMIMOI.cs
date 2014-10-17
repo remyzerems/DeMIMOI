@@ -49,11 +49,11 @@ namespace DeMIMOI_Models
 
         #region Events
         /// <summary>
-        /// Event the occurs when one input/output of the <see cref="DeMIMOI"/> model is connected to another input/output
+        /// Event that occurs when one input/output of the <see cref="DeMIMOI"/> model is connected to another input/output
         /// </summary>
         public event DeMIMOI_ConnectionEventHandler Connected;
         /// <summary>
-        /// Event the occurs when one input/output of the <see cref="DeMIMOI"/> model is disconnected to another input/output
+        /// Event that occurs when one input/output of the <see cref="DeMIMOI"/> model is disconnected to another input/output
         /// </summary>
         public event DeMIMOI_ConnectionEventHandler Disconnected;
         #endregion
