@@ -13,7 +13,7 @@
 //        notice, this list of conditions and the following disclaimer in the
 //        documentation and/or other materials provided with the distribution.
 //
-//      * Neither the name of the Accord.NET Framework authors nor the
+//      * Neither the name of the DeMIMOI library authors nor the
 //        names of its contributors may be used to endorse or promote products
 //        derived from this software without specific prior written permission.
 //
@@ -63,7 +63,7 @@ namespace TestDeMIMOI
         void UpdateControls()
         {
             label_n.Text = "Fn = " + fibo.Outputs[0][0].Value;
-            label_n1.Text = "Fn-1 = " + fibo.Outputs[1][0].Value;
+            label_n1.Text = "Fn-1 = " + fibo.Outputs[0][1].Value;
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -78,7 +78,7 @@ namespace TestDeMIMOI
         {
             // Modify the outputs of the model to set it to the initial values
             fibo.Outputs[0][0].Value = 1;
-            fibo.Outputs[1][0].Value = 0;
+            fibo.Outputs[0][1].Value = 0;
             // Update form controls
             UpdateControls();
         }

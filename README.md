@@ -36,7 +36,7 @@ class By2Multiplier:DeMIMOI
 {
     // Create the multiplier model with 1 input, 2 delayed inputs, 1 output, 1 delayed output
     public By2Multiplier()
-        : base(1, 2, 1, 1)
+        : base(new DeMIMOI_Port(2), new DeMIMOI_Port(1))
     {
         Name = "By 2 Multiplier";
 
@@ -70,7 +70,7 @@ double result = (double)myBy2Multiplier.Outputs[0][0].Value
 
 The library also natively manages for you the past input/output data. So you can access the input or outputs at t-3, or t-7 for example.
 ```csharp
-double previous_value = (double)myBy2Multiplier.Inputs[1][0].Value
+double previous_value = (double)myBy2Multiplier.Inputs[0][1].Value
 // Here previous_value = 5.0 (i.e. the value Inputs[0][0].Value had at t-1)
 ```
 

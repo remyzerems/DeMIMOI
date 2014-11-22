@@ -51,7 +51,7 @@ namespace TestDeMIMOI
         /// Defines a LowPassFilter : 1 input, 1 input delay, 1 output, 1 output delay
         /// </summary>
         public LowPassFilter()
-            : base(1, 1, 1, 1)
+            : base(new DeMIMOI_Port(1), new DeMIMOI_Port(1))
         {
             Name = "Low Pass Filter";
 
@@ -104,7 +104,7 @@ namespace TestDeMIMOI
         }
 
         // This function is called by the DeMIMOI model when asked to update the outputs
-        protected override void UpdateInnerSystem(ref DeMIMOI_InputOutput[] new_outputs)
+        protected override void UpdateInnerSystem(ref List<DeMIMOI_InputOutput> new_outputs)
         {
             // Calculate the next step output for the filter using the discrete filter formula
             // See http://en.wikipedia.org/wiki/Low-pass_filter for more details

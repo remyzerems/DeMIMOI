@@ -44,8 +44,8 @@ namespace DeMIMOI_Models
         }
 
 
-        DeMIMOI_InputOutput[] CurrentOutputs;
-        DeMIMOI_InputOutput[] CurrentInputs;
+        List<DeMIMOI_InputOutput> CurrentOutputs;
+        List<DeMIMOI_InputOutput> CurrentInputs;
 
         #region Events
         /// <summary>
@@ -72,9 +72,9 @@ namespace DeMIMOI_Models
         /// <param name="input_delays_count">Number of delayed input steps</param>
         /// <param name="output_count">Number of outputs of the system</param>
         /// <param name="output_delays_count">Number of delayed output steps</param>
-        public DeMIMOI(int input_count, int input_delays_count, int output_count, int output_delays_count)
+        public DeMIMOI(DeMIMOI_Port input_port, DeMIMOI_Port output_port)
         {
-            Initialize(input_count, input_delays_count, output_count, output_delays_count);
+            Initialize(input_port, output_port);
         }
 
         /// <summary>
@@ -111,24 +111,18 @@ namespace DeMIMOI_Models
         /// <param name="input_delays_count">Number of delayed input steps</param>
         /// <param name="output_count">Number of outputs of the system</param>
         /// <param name="output_delays_count">Number of delayed output steps</param>
-        void Initialize(int input_count, int input_delays_count, int output_count, int output_delays_count)
+        void Initialize(DeMIMOI_Port input_port, DeMIMOI_Port output_port)
         {
             // Check the parameters to see if there's no strange values...
-            CheckParameters(input_count, input_delays_count, output_count, output_delays_count);
+            //CheckParameters(input_count, input_delays_count, output_count, output_delays_count);
 
             // Set name and ID
             ID = AllocNewId();
             Name = "DeMIMOI_" + ID;
-
-            // Save system parameters
-            InputCount = input_count;
-            InputDelayCount = input_delays_count;
-            OutputCount = output_count;
-            OutputDelayCount = output_delays_count;
             
             // Initialize inputs and outputs arrays
-            InitializeInputs(input_count, input_delays_count);
-            InitializeOutputs(output_count, output_delays_count);
+            InitializeInputs(input_port);
+            InitializeOutputs(output_port);
         }
 
         /// <summary>
@@ -136,25 +130,32 @@ namespace DeMIMOI_Models
         /// </summary>
         /// <param name="input_count">Number of inputs of the system</param>
         /// <param name="input_delays_count">Number of delayed input steps</param>
-        void InitializeInputs(int input_count, int input_delays_count)
+        void InitializeInputs(DeMIMOI_Port input_port)
         {
-            Inputs = new List<DeMIMOI_InputOutput[]>();
-            CurrentInputs = new DeMIMOI_InputOutput[input_count];
-            for (int j = 0; j < CurrentInputs.Length; j++)
+            if (input_port != null)
             {
-                CurrentInputs[j] = new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.INPUT);
-            }
-
-            for (int i = 0; i < input_delays_count; i++)
-            {
-                DeMIMOI_InputOutput[] inputs_0n = new DeMIMOI_InputOutput[input_count];
-                for (int j = 0; j < inputs_0n.Length; j++)
+                // Create the inputs image for time t
+                CurrentInputs = new List<DeMIMOI_InputOutput>();
+                for (int j = 0; j < input_port.IODelayCount.Length; j++)
                 {
-                    inputs_0n[j] = new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.INPUT);
-                    inputs_0n[j].Connected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Connected);
-                    inputs_0n[j].Disconnected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Disconnected);
+                    CurrentInputs.Add(new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.INPUT));
                 }
-                Inputs.Add(inputs_0n);
+
+                // Create all the inputs including delayed inputs
+                Inputs = new List<List<DeMIMOI_InputOutput>>();
+                for (int i = 0; i < input_port.IODelayCount.Length; i++)
+                {
+                    // Create the delayed inputs for the current input
+                    List<DeMIMOI_InputOutput> inputs_i_n = new List<DeMIMOI_InputOutput>();
+                    for (int j = 0; j < input_port.IODelayCount[i]; j++)
+                    {
+                        DeMIMOI_InputOutput io = new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.INPUT);
+                        io.Connected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Connected);
+                        io.Disconnected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Disconnected);
+                        inputs_i_n.Add(io);
+                    }
+                    Inputs.Add(inputs_i_n);
+                }
             }
         }
 
@@ -173,25 +174,32 @@ namespace DeMIMOI_Models
         /// </summary>
         /// <param name="output_count">Number of outputs of the system</param>
         /// <param name="output_delays_count">Number of delayed output steps</param>
-        void InitializeOutputs(int output_count, int output_delays_count)
+        void InitializeOutputs(DeMIMOI_Port output_port)
         {
-            Outputs = new List<DeMIMOI_InputOutput[]>();
-            CurrentOutputs = new DeMIMOI_InputOutput[output_count];
-            for (int j = 0; j < CurrentOutputs.Length; j++)
+            if (output_port != null)
             {
-                CurrentOutputs[j] = new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.OUTPUT);
-            }
-
-            for (int i = 0; i < output_delays_count; i++)
-            {
-                DeMIMOI_InputOutput[] outputs_0n = new DeMIMOI_InputOutput[output_count];
-                for (int j = 0; j < outputs_0n.Length; j++)
+                // Create the outputs image for time t
+                CurrentOutputs = new List<DeMIMOI_InputOutput>();
+                for (int j = 0; j < output_port.IODelayCount.Length; j++)
                 {
-                    outputs_0n[j] = new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.OUTPUT);
-                    outputs_0n[j].Connected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Connected);
-                    outputs_0n[j].Disconnected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Disconnected);
+                    CurrentOutputs.Add(new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.OUTPUT));
                 }
-                Outputs.Add(outputs_0n);
+
+                // Create all the outputs including delayed outputs
+                Outputs = new List<List<DeMIMOI_InputOutput>>();
+                for (int i = 0; i < output_port.IODelayCount.Length; i++)
+                {
+                    // Create the delayed outputs for the current output
+                    List<DeMIMOI_InputOutput> outputs_i_n = new List<DeMIMOI_InputOutput>();
+                    for (int j = 0; j < output_port.IODelayCount[i]; j++)
+                    {
+                        DeMIMOI_InputOutput io = new DeMIMOI_InputOutput(this, DeMIMOI_InputOutputType.OUTPUT);
+                        io.Connected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Connected);
+                        io.Disconnected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Disconnected);
+                        outputs_i_n.Add(io);
+                    }
+                    Outputs.Add(outputs_i_n);
+                }
             }
         }
 
@@ -210,29 +218,42 @@ namespace DeMIMOI_Models
         /// </summary>
         public void InjectInputs()
         {
-            InjectInputs(Inputs[0]);
+            if (Inputs != null)
+            {
+                List<DeMIMOI_InputOutput> new_inputs = new List<DeMIMOI_InputOutput>();
+                for (int i = 0; i < Inputs.Count; i++)
+                {
+                    // Add the input at time t
+                    new_inputs.Add(Inputs[i][0]);
+                }
+                // Inject these inputs
+                InjectInputs(new_inputs);
+            }
         }
 
         /// <summary>
         /// Injects the specified inputs to the system (i.e. moving to the next step by pushing the step n inputs to n-1)
         /// </summary>
         /// <param name="new_inputs">The inputs to inject in the DeMIMOI system</param>
-        public void InjectInputs(DeMIMOI_InputOutput[] new_inputs)
+        public void InjectInputs(List<DeMIMOI_InputOutput> new_inputs)
         {
-            if (InputDelayCount > 1)
+            if (Inputs != null)
             {
-                // Push (by cloning to keep the references intact) all the inputs one step in the past
-                for (int i = InputDelayCount - 2; i >= 1; i--)
+                // For each input
+                for (int i = 0; i < Inputs.Count; i++)
                 {
-                    for (int j = 0; j < InputCount; j++)
+                    // Do not push the input delays if there's no delay input defined
+                    if (Inputs[i].Count > 1)
                     {
-                        Inputs[i + 1][j].Value = Inputs[i][j].CloneValue();
+                        // For each delayed input of the i-th input
+                        for (int j = Inputs[i].Count - 2; j >= 1; j--)
+                        {
+                            // Push (by cloning to keep the references intact) all the inputs one step in the past
+                            Inputs[i][j + 1].Value = Inputs[i][j].CloneValue();
+                        }
+                        // Set the input values for step n-1 to the specified inputs
+                        Inputs[i][1].Value = new_inputs[i].CloneValue();
                     }
-                }
-                // Set the input values for step n-1 to the specified inputs
-                for (int j = 0; j < InputCount; j++)
-                {
-                    Inputs[1][j].Value = new_inputs[j].CloneValue();
                 }
             }
         }
@@ -241,23 +262,25 @@ namespace DeMIMOI_Models
         /// Injects the specified outputs to the system (i.e. moving to the next step by pushing the step n outputs to n-1)
         /// </summary>
         /// <param name="new_outputs">The outputs to inject in the DeMIMOI system</param>
-        private void InjectOutputs(DeMIMOI_InputOutput[] new_outputs)
+        public void InjectOutputs(List<DeMIMOI_InputOutput> new_outputs)
         {
-            // Push (by cloning to keep the references intact) all the outputs one step in the past
-            for (int i = OutputDelayCount - 2; i >= 0 ; i--)
+            if (Outputs != null)
             {
-                for (int j = 0; j < OutputCount; j++)
+                // For each output
+                for (int i = 0; i < Outputs.Count; i++)
                 {
-                    Outputs[i + 1][j].Value = Outputs[i][j].CloneValue();
-                }
-            }
-            // Set the output values for step n to the specified outputs
-            for (int j = 0; j < OutputCount; j++)
-            {
-                // Only update outputs of type OUTPUT (for DeMIMOINeuralNetwork compatibility)
-                if (Outputs[0][j].Type == DeMIMOI_InputOutputType.OUTPUT)
-                {
-                    Outputs[0][j].Value = new_outputs[j].CloneValue();
+                    // For each delayed output of the i-th input
+                    for (int j = Outputs[i].Count - 2; j >= 0; j--)
+                    {
+                        // Push (by cloning to keep the references intact) all the outputs one step in the past
+                        Outputs[i][j + 1].Value = Outputs[i][j].CloneValue();
+                    }
+                    // Only update outputs of type OUTPUT (for DeMIMOINeuralNetwork compatibility)
+                    if (Outputs[i][0].Type == DeMIMOI_InputOutputType.OUTPUT)
+                    {
+                        // Set the output values for step n-1 to the specified outputs
+                        Outputs[i][0].Value = new_outputs[i].CloneValue();
+                    }
                 }
             }
         }
@@ -265,7 +288,7 @@ namespace DeMIMOI_Models
         /// <summary>
         /// The inputs of the DeMIMOI system
         /// </summary>
-        public List<DeMIMOI_InputOutput[]> Inputs
+        public List<List<DeMIMOI_InputOutput>> Inputs
         {
             get;
             set;
@@ -274,7 +297,7 @@ namespace DeMIMOI_Models
         /// <summary>
         /// The outputs of the DeMIMOI system
         /// </summary>
-        public List<DeMIMOI_InputOutput[]> Outputs
+        public List<List<DeMIMOI_InputOutput>> Outputs
         {
             get;
             set;
@@ -285,7 +308,7 @@ namespace DeMIMOI_Models
         /// <remarks>Note that the calculated outputs won't be applyed to the system outputs until the <see cref="LatchOutputs"/> function is called</remarks>
         /// </summary>
         /// <param name="new_outputs">Represents Y(n+1), the new outputs of the system</param>
-        protected abstract void UpdateInnerSystem(ref DeMIMOI_InputOutput[] new_outputs);
+        protected abstract void UpdateInnerSystem(ref List<DeMIMOI_InputOutput> new_outputs);
 
         /// <summary>
         /// Save the current inputs of the system in a temporary buffer
@@ -293,28 +316,14 @@ namespace DeMIMOI_Models
         /// </summary>
         private void SaveInputs()
         {
-            for (int i = 0; i < CurrentInputs.Length; i++)
+            if (Inputs != null)
             {
-                CurrentInputs[i].Value = Inputs[0][i].CloneValue();
+                for (int i = 0; i < CurrentInputs.Count; i++)
+                {
+                    CurrentInputs[i].Value = Inputs[i][0].CloneValue();
+                }
             }
         }
-
-        /* Useless for this time ?
-        private void SaveOutputs(DeMIMOI_InputOutput[] outputs)
-        {
-            for (int i = 0; i < CurrentOutputs.Length; i++)
-            {
-                CurrentOutputs[i].Value = outputs[i].CloneValue();
-            }
-        }
-
-        private void SaveOutputs()
-        {
-            for (int i = 0; i < CurrentOutputs.Length; i++)
-            {
-                CurrentOutputs[i].Value = Outputs[0][i].CloneValue();
-            }
-        }*/
 
         /// <summary>
         /// Updates the DeMIMOI
@@ -337,9 +346,12 @@ namespace DeMIMOI_Models
             UpdateInnerSystem(ref CurrentOutputs);
 
             // Be sure the user did not change the CurrentOutputs characteristics
-            if (CurrentOutputs.Length != OutputCount)
+            if (Outputs != null)
             {
-                throw new InvalidOperationException("UpdateInnerSystem must return an output array of " + OutputCount + " elements, but it contains " + CurrentOutputs.Length + " elements right now...");
+                if (CurrentOutputs.Count != Outputs.Count)
+                {
+                    throw new InvalidOperationException("UpdateInnerSystem must return an output array of " + Outputs.Count + " elements, but it contains " + CurrentOutputs.Count + " elements right now...");
+                }
             }
 
             // Count one more system update
@@ -387,10 +399,21 @@ namespace DeMIMOI_Models
         /// </summary>
         public int InputCount
         {
-            get;
-            set;
+            get
+            {
+                if (Inputs != null)
+                {
+                    return Inputs.Count;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            //set;
         }
         
+        /*
         /// <summary>
         /// Number of delayed inputs steps
         /// </summary>
@@ -398,17 +421,28 @@ namespace DeMIMOI_Models
         {
             get;
             set;
-        }
+        }*/
 
         /// <summary>
         /// Number of outputs of the system
         /// </summary>
         public int OutputCount
         {
-            get;
-            set;
+            get
+            {
+                if (Outputs != null)
+                {
+                    return Outputs.Count;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            //set;
         }
 
+        /*
         /// <summary>
         /// Number of delayed outputs steps
         /// </summary>
@@ -416,7 +450,7 @@ namespace DeMIMOI_Models
         {
             get;
             set;
-        }
+        }*/
 
         /// <summary>
         /// DeMIMOI ID number (distinct number for each DeMIMOI object)
@@ -471,30 +505,88 @@ namespace DeMIMOI_Models
             // Computes that kind of output
             //TestModel_1_inputs0[shape = Mrecord, label = "{{<f0> i0(t)|<f1> i1(t)|<f2> i2(t)}|{Modele_1}|{<fo0> o0(..)|<fo1> o1(..)}}"];
 
-            code += Name.Replace(" ", "_") + "_" + ID + "[shape=Mrecord, label=\"{";
-
-            code += "{";
-            for (int i = 0; i < Inputs[0].Length; i++)
+            // Determine the shape of the model
+            string shape = "Mrecord";   // Default shape is a rounded rectangle
+            // No input or output ?
+            if (Inputs == null || Outputs == null)
             {
-                code += "<i" + i + "> " + (Inputs[0][i].Name == "" ? "i" + i : Inputs[0][i].Name) + "(t)";
-                if (i < Inputs[0].Length - 1)
-                {
-                    code += "|";
-                }
+                // Shape is a rectangle
+                shape = "record";
             }
-            code += "}|{" + Name + "}|{";
-            for (int i = 0; i < Outputs[0].Length; i++)
-            {
-                code += "<o" + i + "> " + (Outputs[0][i].Name == "" ? "o" + i : Outputs[0][i].Name) + "(..)";
-                if (i < Outputs[0].Length - 1)
-                {
-                    code += "|";
-                }
-            }
-            code += "}}\"];\n";
 
-            code += GenerateLinkGraphVizCode(Inputs, DeMIMOI_InputOutputType.INPUT);
-            code += GenerateLinkGraphVizCode(Outputs, DeMIMOI_InputOutputType.OUTPUT);
+            code += Name.Replace(" ", "_") + "_" + ID + "[shape=" + shape + ", label=\"{";
+
+            if(Inputs != null)
+            {
+                code += "{";
+                // Draw inputs
+                for (int i = 0; i < Inputs.Count; i++)
+                {
+                    code += "{{";
+                    for (int j = 0; j < Inputs[i].Count; j++)
+                    {
+                        if (Inputs[i][j].ConnectedTo != null || j == 0)
+                        {
+                            if (j > 0 && j < Inputs[i].Count)
+                            {
+                                code += "|";
+                            }
+                            code += "<i" + i + "_" + j + "> " + (Inputs[i][j].Name == "" ? "i" + i : Inputs[i][j].Name) + "(t" + (j == 0 ? "" : " - " + j) + ")";
+                        }
+                    }
+                    code += "}";
+                    if (Inputs[i].Count > 1)
+                    {
+                        code += "|" + (Inputs[i][0].Name == "" ? "i" + i : Inputs[i][0].Name);
+                    }
+                    code += "}";
+                    if (i < Inputs.Count - 1)
+                    {
+                        code += "|";
+                    }
+                }
+                code += "}|";
+            }
+            code += "{" + Name + "}";
+
+            if (Outputs != null)
+            {
+                code += "|{";
+                // Draw outputs
+                for (int i = 0; i < Outputs.Count; i++)
+                {
+                    code += "{";
+                    if (Outputs[i].Count > 1)
+                    {
+                        code += (Outputs[i][0].Name == "" ? "o" + i : Outputs[i][0].Name) + "|";
+                    }
+                    code += "{";
+                    for (int j = 0; j < Outputs[i].Count; j++)
+                    {
+                        code += "<o" + i + "_" + j + "> " + (Outputs[i][j].Name == "" ? "o" + i : Outputs[i][j].Name) + "(t" + (j == 0 ? "" : " - " + j) + ")";
+                        if (j < Outputs[i].Count - 1)
+                        {
+                            code += "|";
+                        }
+                    }
+                    code += "}}";
+                    if (i < Outputs.Count - 1)
+                    {
+                        code += "|";
+                    }
+                }
+                code += "}";
+            }
+            code += "}\"];\n";
+
+            if (Inputs != null)
+            {
+                code += GenerateLinkGraphVizCode(Inputs, DeMIMOI_InputOutputType.INPUT);
+            }
+            if (Outputs != null)
+            {
+                code += GenerateLinkGraphVizCode(Outputs, DeMIMOI_InputOutputType.OUTPUT);
+            }
 
             code += "\n";
 
@@ -502,33 +594,35 @@ namespace DeMIMOI_Models
             return code;
         }
 
-        private string GenerateLinkGraphVizCode(List<DeMIMOI_InputOutput[]> input_output, DeMIMOI_InputOutputType argument_type)
+        private string GenerateLinkGraphVizCode(List<List<DeMIMOI_InputOutput>> input_output, DeMIMOI_InputOutputType argument_type)
         {
             string code = "";
 
-            for (int j = 0; j < input_output.Count; j++)
+            // For each input/output
+            for (int i = 0; i < input_output.Count; i++)
             {
-                for (int i = 0; i < input_output[j].Length; i++)
+                // For each delay of the i-th input/output
+                for (int j = 0; j < input_output[i].Count; j++)
                 {
-                    if (input_output[j][i].ConnectedTo != null)
+                    if (input_output[i][j].ConnectedTo != null)
                     {
-                        if (input_output[j][i].Type == DeMIMOI_InputOutputType.INPUT)
+                        if (input_output[i][j].Type == DeMIMOI_InputOutputType.INPUT)
                         {
-                            DeMIMOI ConnectedParent = input_output[j][i].ConnectedTo.Parent;
+                            DeMIMOI ConnectedParent = input_output[i][j].ConnectedTo.Parent;
                             int connected_index = -1;
                             int delay_offset = -1;
                             for (int k = 0; k < ConnectedParent.Outputs.Count; k++)
                             {
-                                for (int l = 0; l < ConnectedParent.Outputs[k].Length; l++)
+                                for (int l = 0; l < ConnectedParent.Outputs[k].Count; l++)
                                 {
-                                    if (ConnectedParent.Outputs[k][l].ID == input_output[j][i].ConnectedTo.ID)
+                                    if (ConnectedParent.Outputs[k][l].ID == input_output[i][j].ConnectedTo.ID)
                                     {
-                                        connected_index = l;
-                                        delay_offset = k;
+                                        connected_index = k;
+                                        delay_offset = l;
                                     }
                                 }
                             }
-                            code += input_output[j][i].ConnectedTo.Parent.Name.Replace(" ", "_") + "_" + input_output[j][i].ConnectedTo.Parent.ID + ":o" + connected_index + " -> " + Name.Replace(" ", "_") + "_" + ID + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":i" : ":o") + i;
+                            code += input_output[i][j].ConnectedTo.Parent.Name.Replace(" ", "_") + "_" + input_output[i][j].ConnectedTo.Parent.ID + ":o" + connected_index + "_" + delay_offset + ":e -> " + Name.Replace(" ", "_") + "_" + ID + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":i" : ":o") + i + "_" + j + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":w" : ":e");
                             if (delay_offset > 0)
                             {
                                 code += " [ label=\"t - " + delay_offset + "\" ]";

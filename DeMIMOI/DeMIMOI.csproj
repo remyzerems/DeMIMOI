@@ -46,8 +46,10 @@
   <ItemGroup>
     <Compile Include="DeMIMOI.cs" />
     <Compile Include="DeMIMOI_Collection.cs" />
+    <Compile Include="DeMIMOI_Delegate.cs" />
     <Compile Include="DeMIMOI_InputOutput.cs" />
     <Compile Include="DeMIMOI_Persistence.cs" />
+    <Compile Include="DeMIMOI_Port.cs" />
     <Compile Include="IDeMIMOI_Interface.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

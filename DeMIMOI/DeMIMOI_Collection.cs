@@ -289,52 +289,58 @@ namespace DeMIMOI_Models
             // Navigate through all the models in the collection
             for (int i = 0; i < models.Length; i++)
             {
-                // Through all the delayed inputs
-                for (int j = 0; j < this[i].Inputs.Count; j++)
+                if (this[i].Inputs != null)
                 {
                     // Through all the inputs of t-i
-                    for (int k = 0; k < this[i].Inputs[j].Length; k++)
+                    for (int j = 0; j < this[i].Inputs.Count; j++)
                     {
-                        // If the model is connected to another one
-                        if (this[i].Inputs[j][k].ConnectedTo != null)
+                        // Through all the delayed inputs
+                        for (int k = 0; k < this[i].Inputs[j].Count; k++)
                         {
-                            // Get the index of that model and check if it's on the collection at the same time
-                            int connected_index = this.IndexOf(this[i].Inputs[j][k].ConnectedTo.Parent);
-                            // If it's in the collection and that it's not a connection to itself (i.e. cyclic connection)
-                            if (connected_index >= 0 && i != connected_index)
+                            // If the model is connected to another one
+                            if (this[i].Inputs[j][k].ConnectedTo != null)
                             {
-                                // Add it to the topological sort algorithm
-                                // Before, check the direction to determine who's before and who's after
-                                if (this[i].Inputs[j][k].Type == DeMIMOI_InputOutputType.INPUT)
+                                // Get the index of that model and check if it's on the collection at the same time
+                                int connected_index = this.IndexOf(this[i].Inputs[j][k].ConnectedTo.Parent);
+                                // If it's in the collection and that it's not a connection to itself (i.e. cyclic connection)
+                                if (connected_index >= 0 && i != connected_index)
                                 {
-                                    models[i].After(models[connected_index]);
+                                    // Add it to the topological sort algorithm
+                                    // Before, check the direction to determine who's before and who's after
+                                    if (this[i].Inputs[j][k].Type == DeMIMOI_InputOutputType.INPUT)
+                                    {
+                                        models[i].After(models[connected_index]);
+                                    }
+                                    else
+                                    {
+                                        models[i].Before(models[connected_index]);
+                                    }
+
                                 }
-                                else
-                                {
-                                    models[i].Before(models[connected_index]);
-                                }
-                                
                             }
                         }
                     }
                 }
                 // Do the same on outputs
-                for (int j = 0; j < this[i].Outputs.Count; j++)
+                if (this[i].Outputs != null)
                 {
-                    for (int k = 0; k < this[i].Outputs[j].Length; k++)
+                    for (int j = 0; j < this[i].Outputs.Count; j++)
                     {
-                        if (this[i].Outputs[j][k].ConnectedTo != null)
+                        for (int k = 0; k < this[i].Outputs[j].Count; k++)
                         {
-                            int connected_index = this.IndexOf(this[i].Outputs[j][k].ConnectedTo.Parent);
-                            if (connected_index >= 0 && i != connected_index)
+                            if (this[i].Outputs[j][k].ConnectedTo != null)
                             {
-                                if (this[i].Outputs[j][k].Type == DeMIMOI_InputOutputType.OUTPUT)
+                                int connected_index = this.IndexOf(this[i].Outputs[j][k].ConnectedTo.Parent);
+                                if (connected_index >= 0 && i != connected_index)
                                 {
-                                    models[i].Before(models[connected_index]);
-                                }
-                                else
-                                {
-                                    models[i].After(models[connected_index]);
+                                    if (this[i].Outputs[j][k].Type == DeMIMOI_InputOutputType.OUTPUT)
+                                    {
+                                        models[i].Before(models[connected_index]);
+                                    }
+                                    else
+                                    {
+                                        models[i].After(models[connected_index]);
+                                    }
                                 }
                             }
                         }

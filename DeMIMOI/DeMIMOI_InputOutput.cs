@@ -209,7 +209,7 @@ namespace DeMIMOI_Models
         /// <remarks>It has to be one input and one output.</remarks>
         /// </summary>
         /// <param name="input_output">If the current object is an input, this argument must be an output, if the current object is an output, this argument must be an input</param>
-        public void ConnectTo(ref DeMIMOI_InputOutput input_output)
+        public void ConnectTo(DeMIMOI_InputOutput input_output)
         {
             // If it's an output and the argument is an input...
             if (Type == DeMIMOI_InputOutputType.OUTPUT && input_output.Type == DeMIMOI_InputOutputType.INPUT)
@@ -247,30 +247,34 @@ namespace DeMIMOI_Models
         /// Disconnects an input from the output it's connected to
         /// </summary>
         /// <param name="input">An input typed DeMIMOI_InputOutput object to disconnect</param>
-        public static void Unplug(ref DeMIMOI_InputOutput input)
+        public static void Unplug(DeMIMOI_InputOutput input)
         {
             // If it's an input
             if (input.Type == DeMIMOI_InputOutputType.INPUT)
             {
-                DeMIMOI_ConnectionEventArgs eventArg = null;
-
-                // Before disconnecting, pick up the current value and set it to the input (i.e. once it has been disconnected, the input keeps the last value it had before disconnection)
-                input.input_output_value = input.ConnectedTo.Value;
-
-                // If event signalling is required
-                if (input.Disconnected != null)
+                // If the input is connected to something
+                if (input.ConnectedTo != null)
                 {
-                    // Prepare the event args
-                    eventArg = new DeMIMOI_ConnectionEventArgs(input.ConnectedTo, input);
-                }
+                    DeMIMOI_ConnectionEventArgs eventArg = null;
 
-                // Disconnect it
-                input.ConnectedTo = null;
+                    // Before disconnecting, pick up the current value and set it to the input (i.e. once it has been disconnected, the input keeps the last value it had before disconnection)
+                    input.input_output_value = input.ConnectedTo.Value;
 
-                // If event signalling is required
-                if (input.Disconnected != null)
-                {
-                    input.Disconnected(input, eventArg);
+                    // If event signalling is required
+                    if (input.Disconnected != null)
+                    {
+                        // Prepare the event args
+                        eventArg = new DeMIMOI_ConnectionEventArgs(input.ConnectedTo, input);
+                    }
+
+                    // Disconnect it
+                    input.ConnectedTo = null;
+
+                    // If event signalling is required
+                    if (input.Disconnected != null)
+                    {
+                        input.Disconnected(input, eventArg);
+                    }
                 }
             }
             else

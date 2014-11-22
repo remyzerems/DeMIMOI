@@ -42,21 +42,22 @@ namespace TestDeMIMOI
     /// </summary>
     class Fibonacci:DeMIMOI
     {
-        public Fibonacci():base(1, 2, 1, 2)
+        // Create the Fibonacci model with no input and output containing two delays (for step n and step n-1)
+        public Fibonacci():base(null, new DeMIMOI_Port(2))
         {
             Name = "Fibonacci";
 
             // Set Fn = 1 (i.e. F1 = 1)
             Outputs[0][0].Value = 1;
             // Set Fn-1 = 0 (i.e. F0 = 0)
-            Outputs[1][0].Value = 0;
+            Outputs[0][1].Value = 0;
         }
 
         // This function is called by the DeMIMOI model when asked to update the outputs
-        protected override void UpdateInnerSystem(ref DeMIMOI_InputOutput[] new_outputs)
+        protected override void UpdateInnerSystem(ref List<DeMIMOI_InputOutput> new_outputs)
         {
             // We defined our Fibonacci sequence as Fn+1 = Fn + Fn-1
-            new_outputs[0].Value = (object)((int)Outputs[0][0].Value + (int)Outputs[1][0].Value);
+            new_outputs[0].Value = (object)((int)Outputs[0][0].Value + (int)Outputs[0][1].Value);
         }
     }
 }
