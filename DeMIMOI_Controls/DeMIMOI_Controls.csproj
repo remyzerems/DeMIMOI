@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{C9C4C45C-A2BD-4D84-A630-EDB05719EA33}</ProjectGuid>
+    <ProjectGuid>{9FE6E2EA-792B-42F8-998C-3B78E2817AB7}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DeMIMOI_Models</RootNamespace>
-    <AssemblyName>DeMIMOI</AssemblyName>
+    <RootNamespace>DeMIMOI_Controls</RootNamespace>
+    <AssemblyName>DeMIMOI_Controls</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -33,26 +33,25 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="TopologicalSorting, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Externals\TopologicalSorting\TopologicalSorting.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DeMIMOI.cs" />
-    <Compile Include="DeMIMOI_Collection.cs" />
-    <Compile Include="DeMIMOI_Delegate.cs" />
-    <Compile Include="DeMIMOI_InputOutput.cs" />
-    <Compile Include="DeMIMOI_Persistence.cs" />
-    <Compile Include="DeMIMOI_Port.cs" />
-    <Compile Include="DeMIMOI_Probe.cs" />
-    <Compile Include="IDeMIMOI_Interface.cs" />
+    <Compile Include="DeMIMOI_Chart.cs" />
+    <Compile Include="DeMIMOI_PictureBox.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DeMIMOI\DeMIMOI.csproj">
+      <Project>{C9C4C45C-A2BD-4D84-A630-EDB05719EA33}</Project>
+      <Name>DeMIMOI</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

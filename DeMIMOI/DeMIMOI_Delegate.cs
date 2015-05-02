@@ -62,7 +62,7 @@ namespace DeMIMOI_Models
         private void Initialize(DeMIMOI_Port input_port, DeMIMOI_Port output_port, DeMIMOI_UpdateDelegate update_delegate)
         {
             ID = AllocNewId();
-            Name = "DeMIMOI Delegate" + ID;
+            Name = GetType().Name + "_" + ID;
 
             UpdateDelegate = update_delegate; 
         }

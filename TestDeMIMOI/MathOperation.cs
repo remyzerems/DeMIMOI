@@ -29,71 +29,47 @@
 //  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Windows.Forms;
-using System.Diagnostics;
+using DeMIMOI_Models;
 
 namespace TestDeMIMOI
 {
-    public partial class DemoStartup : Form
+    // Delegate to manage a math operation
+    delegate double MathAction(double num);
+
+    /// <summary>
+    /// Class that represents a math operation in the DeMIMOI world
+    /// </summary>
+    class MathOperation:DeMIMOI
     {
+        /// <summary>
+        /// The math operation delegate variable
+        /// </summary>
+        MathAction ma;
 
-        FibonacciDemo fbDemo;
-        LowPassFilterDemo lpfDemo;
-        CascadedLowPassFilterDemo clpfDemo;
-        ChartDemo chartDemo;
-
-        public DemoStartup()
+        /// <summary>
+        /// Constructor of a math operation DeMIMOI model
+        /// </summary>
+        /// <param name="mathAction">The math operation to execute</param>
+        public MathOperation(MathAction mathAction)
+            : base(null, new DeMIMOI_Port(1))
         {
-            InitializeComponent();
+            ma = mathAction;
+
+            // Set the name of the operation to the DeMIMOI model
+            Name = ma.Method.Name;
+
+            // Initialise the first value
+            Outputs[0][0].Value = ma(0);
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        protected override void UpdateInnerSystem(ref List<DeMIMOI_InputOutput> new_outputs)
         {
-            
-        }
+            // Generate the time value using the number of times the model has been updated
+            double cur_t = ((double)UpdateCount) / 10;
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            fbDemo = new FibonacciDemo();
-            fbDemo.ShowDialog();
-
-            fbDemo = null;
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            lpfDemo = new LowPassFilterDemo();
-            lpfDemo.ShowDialog();
-
-            lpfDemo = null;
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            clpfDemo = new CascadedLowPassFilterDemo();
-            clpfDemo.ShowDialog();
-
-            clpfDemo = null;
-        }
-
-        private void button4_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
-
-        private void button5_Click(object sender, EventArgs e)
-        {
-            chartDemo = new ChartDemo();
-            chartDemo.ShowDialog();
-
-            lpfDemo = null;
+            // Calculate the new output value using the math operation and the time value
+            new_outputs[0].Value = ma(cur_t);
         }
     }
 }

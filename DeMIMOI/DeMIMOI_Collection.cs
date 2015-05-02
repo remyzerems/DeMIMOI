@@ -34,7 +34,7 @@ namespace DeMIMOI_Models
     /// DeMIMOI Collection class
     /// </summary>
     [Serializable]
-    public class DeMIMOI_Collection : IList<DeMIMOI>, IDeMIMOI_Interface
+    public class DeMIMOI_Collection : IList<IDeMIMOI_Interface>, IDeMIMOI_Interface
     {
         static int current_id = 0; // Current ID to allocate to a new DeMIMOI_Collection object
         /// <summary>
@@ -45,7 +45,7 @@ namespace DeMIMOI_Models
             return current_id++;
         }
 
-        private IList<DeMIMOI> _collection = new List<DeMIMOI>();
+        private IList<IDeMIMOI_Interface> _collection = new List<IDeMIMOI_Interface>();
 
         // Ask for topological map computation
         [NonSerialized]
@@ -63,7 +63,7 @@ namespace DeMIMOI_Models
 
         #region Implementation of IEnumerable
 
-        public IEnumerator<DeMIMOI> GetEnumerator()
+        public IEnumerator<IDeMIMOI_Interface> GetEnumerator()
         {
             return _collection.GetEnumerator();
         }
@@ -79,32 +79,35 @@ namespace DeMIMOI_Models
         /// Adds a <see cref="DeMIMOI"/> object to the collection
         /// </summary>
         /// <param name="item"><see cref="DeMIMOI"/> object to add</param>
-        public void Add(DeMIMOI item)
+        public void Add(IDeMIMOI_Interface item)
         {
             _collection.Add(item);
             if (item != null)
             {
-                item.Connected += new DeMIMOI_ConnectionEventHandler(item_Connected);
-                item.Disconnected += new DeMIMOI_ConnectionEventHandler(item_Disconnected);
+                if (item is DeMIMOI)
+                {
+                    ((DeMIMOI)item).Connected += new DeMIMOI_ConnectionEventHandler(item_Connected);
+                    ((DeMIMOI)item).Disconnected += new DeMIMOI_ConnectionEventHandler(item_Disconnected);
+                }
                 refresh_topological_order = true;
             }
         }
 
         public void Clear()
         {
-            foreach (DeMIMOI item in _collection)
+            foreach (IDeMIMOI_Interface item in _collection)
             {
                 _collection.Remove(item);
             }
             //_collection.Clear();
         }
 
-        public bool Contains(DeMIMOI item)
+        public bool Contains(IDeMIMOI_Interface item)
         {
             return _collection.Contains(item);
         }
 
-        public void CopyTo(DeMIMOI[] array, int arrayIndex)
+        public void CopyTo(IDeMIMOI_Interface[] array, int arrayIndex)
         {
             _collection.CopyTo(array, arrayIndex);
         }
@@ -119,35 +122,41 @@ namespace DeMIMOI_Models
             get { return _collection.IsReadOnly; }
         }
 
-        public void AddRange(IEnumerable<DeMIMOI> collection)
+        public void AddRange(IEnumerable<IDeMIMOI_Interface> collection)
         {
             if (collection != null)
             {
-                foreach (DeMIMOI item in collection)
+                foreach (IDeMIMOI_Interface item in collection)
                 {
                     _collection.Add(item);
                 }
             }
         }
 
-        public void Insert(int index, DeMIMOI item)
+        public void Insert(int index, IDeMIMOI_Interface item)
         {
             _collection.Insert(index, item);
             if (item != null)
             {
-                item.Connected += new DeMIMOI_ConnectionEventHandler(item_Connected);
-                item.Disconnected += new DeMIMOI_ConnectionEventHandler(item_Disconnected);
+                if (item is DeMIMOI)
+                {
+                    ((DeMIMOI)item).Connected += new DeMIMOI_ConnectionEventHandler(item_Connected);
+                    ((DeMIMOI)item).Disconnected += new DeMIMOI_ConnectionEventHandler(item_Disconnected);
+                }
                 refresh_topological_order = true;
             }
         }
 
-        public bool Remove(DeMIMOI item)
+        public bool Remove(IDeMIMOI_Interface item)
         {
             bool ret = _collection.Remove(item);
             if (item != null)
             {
-                item.Connected -= item_Connected;
-                item.Disconnected -= item_Disconnected;
+                if (item is DeMIMOI)
+                {
+                    ((DeMIMOI)item).Connected -= item_Connected;
+                    ((DeMIMOI)item).Disconnected -= item_Disconnected;
+                }
                 refresh_topological_order = true;
             }
 
@@ -158,17 +167,17 @@ namespace DeMIMOI_Models
         {
             if (index >= 0 && index < _collection.Count)
             {
-                DeMIMOI item = _collection[index];
+                IDeMIMOI_Interface item = _collection[index];
                 Remove(item);
             }
         }
 
-        public int IndexOf(DeMIMOI item)
+        public int IndexOf(IDeMIMOI_Interface item)
         {
             return _collection.IndexOf(item);
         }
 
-        public DeMIMOI this[int index]
+        public IDeMIMOI_Interface this[int index]
         {
             get { return _collection[index]; }
             set { _collection[index] = value; }
@@ -192,6 +201,8 @@ namespace DeMIMOI_Models
         public DeMIMOI_Collection()
             : base()
         {
+            Name = GetType().Name + "_" + ID;
+
             Initialize();
         }
 
@@ -252,8 +263,11 @@ namespace DeMIMOI_Models
                     foreach (OrderedProcess orderedProcess in orderedProcessList)
                     {
                         int index = int.Parse(orderedProcess.Name);
-                        this[index].Update();
-                        this[index].LatchOutputs();
+                        if (this[index] != null)
+                        {
+                            this[index].Update();
+                            this[index].LatchOutputs();
+                        }
                     }
                 }
             }
@@ -264,8 +278,11 @@ namespace DeMIMOI_Models
                     Parallel.ForEach(orderedProcessList, orderedProcess =>
                     {
                         int index = int.Parse(orderedProcess.Name);
-                        this[index].Update();
-                        this[index].LatchOutputs();
+                        if (this[index] != null)
+                        {
+                            this[index].Update();
+                            this[index].LatchOutputs();
+                        }
                     });
                 }
                 
@@ -289,57 +306,61 @@ namespace DeMIMOI_Models
             // Navigate through all the models in the collection
             for (int i = 0; i < models.Length; i++)
             {
-                if (this[i].Inputs != null)
+                if (this[i] is DeMIMOI)
                 {
-                    // Through all the inputs of t-i
-                    for (int j = 0; j < this[i].Inputs.Count; j++)
+                    DeMIMOI model = (DeMIMOI)this[i];
+                    if(model.Inputs != null)
                     {
-                        // Through all the delayed inputs
-                        for (int k = 0; k < this[i].Inputs[j].Count; k++)
+                        // Through all the inputs of t-i
+                        for (int j = 0; j < model.Inputs.Count; j++)
                         {
-                            // If the model is connected to another one
-                            if (this[i].Inputs[j][k].ConnectedTo != null)
+                            // Through all the delayed inputs
+                            for (int k = 0; k < model.Inputs[j].Count; k++)
                             {
-                                // Get the index of that model and check if it's on the collection at the same time
-                                int connected_index = this.IndexOf(this[i].Inputs[j][k].ConnectedTo.Parent);
-                                // If it's in the collection and that it's not a connection to itself (i.e. cyclic connection)
-                                if (connected_index >= 0 && i != connected_index)
+                                // If the model is connected to another one
+                                if (model.Inputs[j][k].ConnectedTo != null)
                                 {
-                                    // Add it to the topological sort algorithm
-                                    // Before, check the direction to determine who's before and who's after
-                                    if (this[i].Inputs[j][k].Type == DeMIMOI_InputOutputType.INPUT)
+                                    // Get the index of that model and check if it's on the collection at the same time
+                                    int connected_index = this.IndexOf(model.Inputs[j][k].ConnectedTo.Parent);
+                                    // If it's in the collection and that it's not a connection to itself (i.e. cyclic connection)
+                                    if (connected_index >= 0 && i != connected_index)
                                     {
-                                        models[i].After(models[connected_index]);
-                                    }
-                                    else
-                                    {
-                                        models[i].Before(models[connected_index]);
-                                    }
+                                        // Add it to the topological sort algorithm
+                                        // Before, check the direction to determine who's before and who's after
+                                        if (model.Inputs[j][k].Type == DeMIMOI_InputOutputType.INPUT)
+                                        {
+                                            models[i].After(models[connected_index]);
+                                        }
+                                        else
+                                        {
+                                            models[i].Before(models[connected_index]);
+                                        }
 
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                // Do the same on outputs
-                if (this[i].Outputs != null)
-                {
-                    for (int j = 0; j < this[i].Outputs.Count; j++)
+                    // Do the same on outputs
+                    if (model.Outputs != null)
                     {
-                        for (int k = 0; k < this[i].Outputs[j].Count; k++)
+                        for (int j = 0; j < model.Outputs.Count; j++)
                         {
-                            if (this[i].Outputs[j][k].ConnectedTo != null)
+                            for (int k = 0; k < model.Outputs[j].Count; k++)
                             {
-                                int connected_index = this.IndexOf(this[i].Outputs[j][k].ConnectedTo.Parent);
-                                if (connected_index >= 0 && i != connected_index)
+                                if (model.Outputs[j][k].ConnectedTo != null)
                                 {
-                                    if (this[i].Outputs[j][k].Type == DeMIMOI_InputOutputType.OUTPUT)
+                                    int connected_index = this.IndexOf(model.Outputs[j][k].ConnectedTo.Parent);
+                                    if (connected_index >= 0 && i != connected_index)
                                     {
-                                        models[i].Before(models[connected_index]);
-                                    }
-                                    else
-                                    {
-                                        models[i].After(models[connected_index]);
+                                        if (model.Outputs[j][k].Type == DeMIMOI_InputOutputType.OUTPUT)
+                                        {
+                                            models[i].Before(models[connected_index]);
+                                        }
+                                        else
+                                        {
+                                            models[i].After(models[connected_index]);
+                                        }
                                     }
                                 }
                             }
@@ -415,9 +436,11 @@ namespace DeMIMOI_Models
         /// <returns>The GraphViz code</returns>
         public string GraphVizFullCode()
         {
-            string code = "digraph g_" + Name.Replace(" ", "_") + " {\n\trankdir=LR;\n";
+            string code = "digraph g_" + GetType().Name + " {\n\trankdir=LR;\n\tranksep=1.25;\n";
+            code += "\tedge [ fontcolor=red, fontsize=9, fontname=\"Times-Roman italic\" ];\n";
+            //code += "\tnode [ penwidth=1 ];\n";
             code += GraphVizCode();
-            code += "}";
+            code += "}\n\n";
 
             return code;
         }
@@ -433,9 +456,13 @@ namespace DeMIMOI_Models
             string code = "";
             if (is_collection_a_group)
             {
-                code = "subgraph cluster_DeMIMOI_Collection_" + ID + " {\n";
+                code = "subgraph cluster_" + GetType().Name + "_" + ID + " {\n";
+                code += "label = \"" + Name + "\";\n";
+                code += "style=filled;\nfillcolor=lightgrey;\nfontsize=18;\nfontname=\"Times-Roman bold\";\n";
+                code += "node [style=filled, fillcolor = white];\n";
+                code += "style = rounded;\n";
                 code += GraphVizCode();
-                code += "}";
+                code += "}\n\n";
             }
             else
             {
@@ -455,7 +482,17 @@ namespace DeMIMOI_Models
             string code = "";
             for (int i = 0; i < this.Count; i++)
             {
-                code += this[i].GraphVizCode();
+                if (this[i] != null)
+                {
+                    if (this[i] is DeMIMOI_Collection)
+                    {
+                        code += ((DeMIMOI_Collection)this[i]).GraphVizCode(true);
+                    }
+                    else
+                    {
+                        code += this[i].GraphVizCode();
+                    }
+                }
             }
 
             return code;

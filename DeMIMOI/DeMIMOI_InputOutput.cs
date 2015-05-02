@@ -52,6 +52,79 @@ namespace DeMIMOI_Models
             return current_id++;
         }
 
+        /// <summary>
+        /// Search the inputs or outputs of the parent model of the input given to return the input indexes in the Input array it is contained
+        /// </summary>
+        /// <param name="input">Input to find the indexes</param>
+        /// <param name="arrayToSearchIn">Array of the DeMIMOI to search in (Inputs or Outputs array)</param>
+        /// <returns>The indexes found (both to -1 if it does not succeed)</returns>
+        private static int[] GetInputOutputIndexes(DeMIMOI_InputOutput input, DeMIMOI_InputOutputType arrayToSearchIn)
+        {
+            // Initialize the indexes found to -1 (default if not found)
+            int[] indexesFound = new int[2];
+            indexesFound[0] = -1;
+            indexesFound[1] = -1;
+
+            // Create a reference that points the array we should search in
+            List<List<DeMIMOI_InputOutput>> demimoi_io_array;
+            if (arrayToSearchIn == DeMIMOI_InputOutputType.INPUT)
+            {
+                demimoi_io_array = input.Parent.Inputs;
+            }
+            else
+            {
+                demimoi_io_array = input.Parent.Outputs;
+            }
+
+            // Search the selected array to find the input_output in
+            for (int i = 0; i < demimoi_io_array.Count; i++)
+            {
+                for (int j = 0; j < demimoi_io_array[i].Count; j++)
+                {
+                    // If we find it
+                    if (demimoi_io_array[i][j] == input)
+                    {
+                        // Get the index and leave the whole loop
+                        indexesFound[0] = i;
+                        indexesFound[1] = j;
+                        break;
+                    }
+                }
+                // If we found the indexes, leave the loop
+                if (indexesFound[0] != -1)
+                {
+                    break;
+                }
+            }
+
+            return indexesFound;
+        }
+
+        /// <summary>
+        /// Search the inputs or outputs of the parent model of the input given to return the input indexes in the Input array it is contained
+        /// </summary>
+        /// <param name="input_output">Input to find the indexes</param>
+        /// <returns>The indexes found (both to -1 if it does not succeed)</returns>
+        public static int[] GetInputOutputIndexes(DeMIMOI_InputOutput input_output)
+        {
+            // First search in the same array than the input_output.Type indicates
+            int[] indexesFound = GetInputOutputIndexes(input_output, input_output.Type);
+            // If we didn't find anything, try on the other array (i.e. Output array if input_output is an input and vice versa)
+            if (indexesFound[0] == -1)
+            {
+                if (input_output.Type == DeMIMOI_InputOutputType.INPUT)
+                {
+                    indexesFound = GetInputOutputIndexes(input_output, DeMIMOI_InputOutputType.OUTPUT);
+                }
+                else
+                {
+                    indexesFound = GetInputOutputIndexes(input_output, DeMIMOI_InputOutputType.INPUT);
+                }
+            }
+
+            return indexesFound;
+        }
+
         // Inner own Input/Output value
         object input_output_value;
 
@@ -211,35 +284,56 @@ namespace DeMIMOI_Models
         /// <param name="input_output">If the current object is an input, this argument must be an output, if the current object is an output, this argument must be an input</param>
         public void ConnectTo(DeMIMOI_InputOutput input_output)
         {
-            // If it's an output and the argument is an input...
-            if (Type == DeMIMOI_InputOutputType.OUTPUT && input_output.Type == DeMIMOI_InputOutputType.INPUT)
+            // If the input we want to connect is defined...
+            if (input_output != null)
             {
-                // Ok, connect the input to this output
-                input_output.ConnectedTo = this;
-
-                // If event signalling is required
-                if (Connected != null)
+                // If it's an output and the argument is an input...
+                if (Type == DeMIMOI_InputOutputType.OUTPUT && input_output.Type == DeMIMOI_InputOutputType.INPUT)
                 {
-                    Connected(this, new DeMIMOI_ConnectionEventArgs(this, input_output));
-                }
-            } else {
-                // If it's an input and the argument is an output...
-                if (Type == DeMIMOI_InputOutputType.INPUT && input_output.Type == DeMIMOI_InputOutputType.OUTPUT)
-                {
-                    // Ok, connect this to the given output
-                    ConnectedTo = input_output;
+                    // Ok, connect the input to this output
+                    input_output.ConnectedTo = this;
 
                     // If event signalling is required
                     if (Connected != null)
                     {
-                        Connected(this, new DeMIMOI_ConnectionEventArgs(input_output, this));
+                        Connected(this, new DeMIMOI_ConnectionEventArgs(this, input_output));
+                    }
+                    // If event signalling for the input is required
+                    if (input_output.Connected != null)
+                    {
+                        input_output.Connected(this, new DeMIMOI_ConnectionEventArgs(this, input_output));
                     }
                 }
                 else
                 {
-                    // NOK, this makes non sense ! Trying to connect two outputs or two inputs...
-                    throw new Exception("Can't connect two inputs or two outputs together ! Connect one output to an input !");
+                    // If it's an input and the argument is an output...
+                    if (Type == DeMIMOI_InputOutputType.INPUT && input_output.Type == DeMIMOI_InputOutputType.OUTPUT)
+                    {
+                        // Ok, connect this to the given output
+                        ConnectedTo = input_output;
+
+                        // If event signalling is required
+                        if (Connected != null)
+                        {
+                            Connected(this, new DeMIMOI_ConnectionEventArgs(input_output, this));
+                        }
+                        // If event signalling for the output is required
+                        if (input_output.Connected != null)
+                        {
+                            input_output.Connected(this, new DeMIMOI_ConnectionEventArgs(input_output, this));
+                        }
+                    }
+                    else
+                    {
+                        // NOK, this makes non sense ! Trying to connect two outputs or two inputs...
+                        throw new Exception("Can't connect two inputs or two outputs together ! Connect one output to an input !");
+                    }
                 }
+            }
+            else
+            {
+                // The input (or output) is not defined, so we unplug
+                Unplug(this);
             }
         }
 

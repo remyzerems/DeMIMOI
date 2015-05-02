@@ -118,7 +118,8 @@ namespace DeMIMOI_Models
 
             // Set name and ID
             ID = AllocNewId();
-            Name = "DeMIMOI_" + ID;
+            Name = GetType().Name + "_" + ID;
+            Description = "";
             
             // Initialize inputs and outputs arrays
             InitializeInputs(input_port);
@@ -470,6 +471,70 @@ namespace DeMIMOI_Models
             set;
         }
 
+        /// <summary>
+        /// Description of the DeMIMOI object
+        /// </summary>
+        public string Description
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Returns the input which name is the same as the argument
+        /// </summary>
+        /// <param name="name">The name to find</param>
+        /// <returns>The input found</returns>
+        public DeMIMOI_InputOutput GetInputByName(string name)
+        {
+            return GetInputOutputByName(name, Inputs);
+        }
+
+        /// <summary>
+        /// Returns the output which name is the same as the argument
+        /// </summary>
+        /// <param name="name">The name to find</param>
+        /// <returns>The output found</returns>
+        public DeMIMOI_InputOutput GetOutputByName(string name)
+        {
+            return GetInputOutputByName(name, Outputs);
+        }
+
+        /// <summary>
+        /// Returns the input/output which name is the same as the argument
+        /// </summary>
+        /// <param name="name">The name to find</param>
+        /// <param name="inputs_outputs">The input/output list to search in</param>
+        /// <returns>The input/output found</returns>
+        static DeMIMOI_InputOutput GetInputOutputByName(string name, List<List<DeMIMOI_InputOutput>> inputs_outputs)
+        {
+            DeMIMOI_InputOutput ret = null;
+            for (int i = 0; i < inputs_outputs.Count; i++)
+            {
+                for (int j = 0; j < inputs_outputs[i].Count; j++)
+                {
+                    string inputName = inputs_outputs[i][j].Name + "(t";
+                    if (j > 0)
+                    {
+                        inputName += "-" + j;
+                    }
+                    inputName += ")";
+
+                    if (name.Replace(" ", "") == inputName)
+                    {
+                        ret = inputs_outputs[i][j];
+                        break;
+                    }
+                }
+                if (ret != null)
+                {
+                    break;
+                }
+            }
+
+            return ret;
+        }
+
         /*public void Save(string filename)
         {
             XmlSerializer xs = new XmlSerializer(typeof(DeMIMOI));
@@ -486,7 +551,7 @@ namespace DeMIMOI_Models
         /// <returns>The GraphViz code</returns>
         public string GraphVizFullCode()
         {
-            string code = "digraph " + Name.Replace(" ", "_") + " {\n\trankdir=LR;\n";
+            string code = "digraph " + GetType().Name + " {\n\trankdir=LR;\n\tranksep=1.25;\n\tedge [ fontcolor=red, fontsize=9, fontname=\"Times-Roman italic\" ];\n";
             code += GraphVizCode();
             code += "}";
 
@@ -514,7 +579,7 @@ namespace DeMIMOI_Models
                 shape = "record";
             }
 
-            code += Name.Replace(" ", "_") + "_" + ID + "[shape=" + shape + ", label=\"{";
+            code += GetType().Name.Replace("`", "_") + "_" + ID + "[shape=" + shape + ", label=\"{";
 
             if(Inputs != null)
             {
@@ -535,7 +600,16 @@ namespace DeMIMOI_Models
                         }
                     }
                     code += "}";
-                    if (Inputs[i].Count > 1)
+                    bool isConnected = false;
+                    for (int j = 1; j < Inputs[i].Count; j++)
+                    {
+                        if (Inputs[i][j].ConnectedTo != null)
+                        {
+                            isConnected = true;
+                            break;
+                        }
+                    }
+                    if (Inputs[i].Count > 1 && isConnected == true)
                     {
                         code += "|" + (Inputs[i][0].Name == "" ? "i" + i : Inputs[i][0].Name);
                     }
@@ -547,7 +621,7 @@ namespace DeMIMOI_Models
                 }
                 code += "}|";
             }
-            code += "{" + Name + "}";
+            code += "{" + Name.Replace("\n", "\\n") + (Description != "" ? "\\n" + Description.Replace("\n", "\\n") : "") + "}";
 
             if (Outputs != null)
             {
@@ -556,6 +630,7 @@ namespace DeMIMOI_Models
                 for (int i = 0; i < Outputs.Count; i++)
                 {
                     code += "{";
+
                     if (Outputs[i].Count > 1)
                     {
                         code += (Outputs[i][0].Name == "" ? "o" + i : Outputs[i][0].Name) + "|";
@@ -622,7 +697,7 @@ namespace DeMIMOI_Models
                                     }
                                 }
                             }
-                            code += input_output[i][j].ConnectedTo.Parent.Name.Replace(" ", "_") + "_" + input_output[i][j].ConnectedTo.Parent.ID + ":o" + connected_index + "_" + delay_offset + ":e -> " + Name.Replace(" ", "_") + "_" + ID + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":i" : ":o") + i + "_" + j + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":w" : ":e");
+                            code += input_output[i][j].ConnectedTo.Parent.GetType().Name.Replace("`", "_") + "_" + input_output[i][j].ConnectedTo.Parent.ID + ":o" + connected_index + "_" + delay_offset + ":e -> " + GetType().Name.Replace("`", "_") + "_" + ID + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":i" : ":o") + i + "_" + j + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":w" : ":e");
                             if (delay_offset > 0)
                             {
                                 code += " [ label=\"t - " + delay_offset + "\" ]";
