@@ -9,14 +9,17 @@ It can also be seen as an implementation of dynamical systems models in control 
 It is also strongly related to the graph theory.
 
 ###Features
-* Create multiple input multiple output models easily by only coding the inner function.
-* Inputs/Outputs can be numbers as well as any other object
+* Create connectable multiple input multiple output models easily by only coding the inner function.
+* Connect/disconnect models to each other to build complex connection based models
 * Natively access past input/output data (nothing to code, just specify how many steps back in time you want to have)
+* Inputs/Outputs can be numbers as well as any other object
 * Collection of models to manage many models at the same time
 * Topological order update to update each model following their dependencies ([thank you Martin !](https://github.com/martindevans/TopologicalSorting))
 * Connection/Disconnection events available
-* Connect/disconnect models to each other to build complex connection based models
 * GraphViz code is available for each model to help visualize the models and their connections
+* Windows Form controls mapping support :
+  * DeMIMOI_Chart to plot data produced by other models
+  * DeMIMOI_PictureBox to display images coming from other models
 * Demos included to show some of the features : Fibonacci sequence, 1st order low pass filter, chained 1st order low pass filter to build a 5th order low pass filter
 
 
