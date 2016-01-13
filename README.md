@@ -7,24 +7,23 @@ DeMIMOI is a C# library which allows the user to easily build complex connection
 It can be used to model almost anything you can think of as an input/output system.
 It can also be seen as an implementation of dynamical systems models in control theory, but can be used in many other contexts.
 It is also strongly related to the graph theory.
-It's more or less close to the Matlab Simulink approach combined to the power of the C# language, with some difference...
 
-### Features
+###Features
 * Create connectable multiple input multiple output models easily by only coding the inner function.
-* Dynamically connect/disconnect models to each other to build complex connection based models
+* Connect/disconnect models to each other to build complex connection based models
 * Natively access past input/output data (nothing to code, just specify how many steps back in time you want to have)
-* Inputs/Outputs can be numbers as well as any other object (images, instance of a class, arrays...)
-* Collection of models to manage many models at the same time (e.g. update all the models using myCollection.UpdateAndLatch())
+* Inputs/Outputs can be numbers as well as any other object
+* Collection of models to manage many models at the same time
 * Topological order update to update each model following their dependencies ([thank you Martin !](https://github.com/martindevans/TopologicalSorting))
 * Connection/Disconnection events available
-* GraphViz code is available for each model to help visualize the models and their connections ([See an example](https://aiaddict.files.wordpress.com/2015/12/al5c-sensory-motor-sample-application.png))
+* GraphViz code is available for each model to help visualize the models and their connections
 * Windows Form controls mapping support :
   * DeMIMOI_Chart to plot data produced by other models
   * DeMIMOI_PictureBox to display images coming from other models
 * Demos included to show some of the features : Fibonacci sequence, 1st order low pass filter, chained 1st order low pass filter to build a 5th order low pass filter
 
 
-### Basic example
+###Basic example
 
 ![ ](/DeMIMOI_1i_F_1o.png?raw=true "DeMIMOI model with 1 input, 1 output")
 
@@ -103,5 +102,4 @@ double result = (double)myBy2Multiplier2.Outputs[0][0].Value
 
 This is a very basic example, but this library can be used for far more complex things like control theory models, signal processing, artificial intelligence...
 
-### Use case
-For a more detailed view of what you can do with this library, check this website : https://aiaddict.wordpress.com/
+
