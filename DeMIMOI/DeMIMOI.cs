@@ -111,7 +111,7 @@ namespace DeMIMOI_Models
         /// <param name="input_delays_count">Number of delayed input steps</param>
         /// <param name="output_count">Number of outputs of the system</param>
         /// <param name="output_delays_count">Number of delayed output steps</param>
-        void Initialize(DeMIMOI_Port input_port, DeMIMOI_Port output_port)
+        protected void Initialize(DeMIMOI_Port input_port, DeMIMOI_Port output_port)
         {
             // Check the parameters to see if there's no strange values...
             //CheckParameters(input_count, input_delays_count, output_count, output_delays_count);
@@ -131,7 +131,7 @@ namespace DeMIMOI_Models
         /// </summary>
         /// <param name="input_count">Number of inputs of the system</param>
         /// <param name="input_delays_count">Number of delayed input steps</param>
-        void InitializeInputs(DeMIMOI_Port input_port)
+        protected void InitializeInputs(DeMIMOI_Port input_port)
         {
             if (input_port != null)
             {
@@ -175,7 +175,7 @@ namespace DeMIMOI_Models
         /// </summary>
         /// <param name="output_count">Number of outputs of the system</param>
         /// <param name="output_delays_count">Number of delayed output steps</param>
-        void InitializeOutputs(DeMIMOI_Port output_port)
+        protected void InitializeOutputs(DeMIMOI_Port output_port)
         {
             if (output_port != null)
             {
@@ -481,6 +481,36 @@ namespace DeMIMOI_Models
         }
 
         /// <summary>
+        /// Disconnects all the inputs given. If outputs are present they will be ignored
+        /// </summary>
+        /// <param name="inputs">Inputs to disconnect</param>
+        public static void DisconnectAll(List<List<DeMIMOI_InputOutput>> inputs)
+        {
+            // For each input
+            for (int i = 0; i < inputs.Count; i++)
+            {
+                // For each delayed input of the i-th input
+                for (int j = 0; j < inputs[i].Count; j++)
+                {
+                    // Only inputs can be disconnected
+                    if (inputs[i][j].Type == DeMIMOI_InputOutputType.INPUT)
+                    {
+                        // Disconnect the input
+                        DeMIMOI_InputOutput.Unplug(inputs[i][j]);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Disconnects all the inputs of the model
+        /// </summary>
+        public void DisconnectAllInputs()
+        {
+            DisconnectAll(Inputs);
+        }
+
+        /// <summary>
         /// Returns the input which name is the same as the argument
         /// </summary>
         /// <param name="name">The name to find</param>
@@ -513,7 +543,22 @@ namespace DeMIMOI_Models
             {
                 for (int j = 0; j < inputs_outputs[i].Count; j++)
                 {
-                    string inputName = inputs_outputs[i][j].Name + "(t";
+                    string inputName = "(t";
+                    if (inputs_outputs[i][j].Name == "")
+                    {
+                        if (inputs_outputs[i][j].Type == DeMIMOI_InputOutputType.INPUT)
+                        {
+                            inputName = "i" + i + inputName;
+                        }
+                        else
+                        {
+                            inputName = "o" + i + inputName;
+                        }
+                    }
+                    else
+                    {
+                        inputName = inputs_outputs[i][j].Name + inputName;
+                    }
                     if (j > 0)
                     {
                         inputName += "-" + j;
@@ -563,7 +608,7 @@ namespace DeMIMOI_Models
         /// <remarks>This only gives the GraphViz code for the DeMIMOI object only, it's not the full code</remarks>
         /// </summary>
         /// <returns>The GraphViz code</returns>
-        public string GraphVizCode()
+        public virtual string GraphVizCode()
         {
             string code = "";
 
@@ -669,7 +714,11 @@ namespace DeMIMOI_Models
             return code;
         }
 
-        private string GenerateLinkGraphVizCode(List<List<DeMIMOI_InputOutput>> input_output, DeMIMOI_InputOutputType argument_type)
+        protected virtual string GenerateLinkGraphVizCode(List<List<DeMIMOI_InputOutput>> input_output, DeMIMOI_InputOutputType argument_type)
+        {
+            return GenerateLinkGraphVizCode(input_output, argument_type, true);
+        }
+        protected virtual string GenerateLinkGraphVizCode(List<List<DeMIMOI_InputOutput>> input_output, DeMIMOI_InputOutputType argument_type, bool show_labels)
         {
             string code = "";
 
@@ -698,13 +747,16 @@ namespace DeMIMOI_Models
                                 }
                             }
                             code += input_output[i][j].ConnectedTo.Parent.GetType().Name.Replace("`", "_") + "_" + input_output[i][j].ConnectedTo.Parent.ID + ":o" + connected_index + "_" + delay_offset + ":e -> " + GetType().Name.Replace("`", "_") + "_" + ID + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":i" : ":o") + i + "_" + j + (argument_type == DeMIMOI_InputOutputType.INPUT ? ":w" : ":e");
-                            if (delay_offset > 0)
+                            if (show_labels == true)
                             {
-                                code += " [ label=\"t - " + delay_offset + "\" ]";
-                            }
-                            else
-                            {
-                                code += " [ label=\"t\" ]";
+                                if (delay_offset > 0)
+                                {
+                                    code += " [ label=\"t - " + delay_offset + "\" ]";
+                                }
+                                else
+                                {
+                                    code += " [ label=\"t\" ]";
+                                }
                             }
                             code += ";\n";
                         }

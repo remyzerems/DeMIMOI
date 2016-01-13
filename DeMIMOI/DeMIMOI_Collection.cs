@@ -45,7 +45,10 @@ namespace DeMIMOI_Models
             return current_id++;
         }
 
-        private IList<IDeMIMOI_Interface> _collection = new List<IDeMIMOI_Interface>();
+        private IList<IDeMIMOI_Interface> _collection;
+
+        // Same as _collection but with all DeMIMOI_Collection objects deployed
+        private IList<IDeMIMOI_Interface> _flat_collection;
 
         // Ask for topological map computation
         [NonSerialized]
@@ -59,6 +62,9 @@ namespace DeMIMOI_Models
         {
             ID = AllocNewId();
             Name = "DeMIMOI_Collection_" + ID;
+
+            _collection = new List<IDeMIMOI_Interface>();
+            _flat_collection = new List<IDeMIMOI_Interface>();
         }
 
         #region Implementation of IEnumerable
@@ -95,16 +101,39 @@ namespace DeMIMOI_Models
 
         public void Clear()
         {
+            // Clear the collection by calling the Remove function so to execute some specific instructions
             foreach (IDeMIMOI_Interface item in _collection)
             {
                 _collection.Remove(item);
             }
-            //_collection.Clear();
         }
 
         public bool Contains(IDeMIMOI_Interface item)
         {
-            return _collection.Contains(item);
+            // Ask the collection to check if it contains "item"
+            bool contains = _collection.Contains(item);
+
+            // If it doesn't
+            if (contains == false)
+            {
+                // Check in the collections this current collection has on its list (i.e. search the sub-collections)
+                for (int i = 0; i < Count; i++)
+                {
+                    // If the i-th element is a collection
+                    if (this[i] is DeMIMOI_Collection)
+                    {
+                        // Ask the sub-collection to check if it contains "item"
+                        contains = ((DeMIMOI_Collection)this[i]).Contains(item);
+                        // If we find one true result, we can say that it contains "item", so leave the loop
+                        if (contains == true)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return contains;
         }
 
         public void CopyTo(IDeMIMOI_Interface[] array, int arrayIndex)
@@ -218,12 +247,43 @@ namespace DeMIMOI_Models
             Name = name;
         }
 
-        
+
+        protected void RefreshFlatCollection()
+        {
+            if (_flat_collection == null)
+            {
+                _flat_collection = new List<IDeMIMOI_Interface>();
+            }
+
+            _flat_collection.Clear();
+            for (int i = 0; i < this.Count; i++)
+            {
+                if (this[i] is DeMIMOI_Collection)
+                {
+                    DeMIMOI_Collection cur_coll = this[i] as DeMIMOI_Collection;
+                    if (cur_coll.refresh_topological_order == true)
+                    {
+                        cur_coll.RefreshFlatCollection();
+                    }
+                    for (int j = 0; j < cur_coll._flat_collection.Count; j++)
+                    {
+                        if (_flat_collection.Contains(cur_coll._flat_collection[j]) == false)
+                        {
+                            _flat_collection.Add(cur_coll._flat_collection[j]);
+                        }
+                    }
+                }
+                else
+                {
+                    _flat_collection.Add(this[i]);
+                }
+            }
+        }
 
         /// <summary>
         /// Updates all the <see cref="DeMIMOI"/> objects of the collection
         /// </summary>
-        public void Update()
+        public virtual void Update()
         {
             if (EnableMultithreading == false)
             {
@@ -244,48 +304,54 @@ namespace DeMIMOI_Models
         /// <summary>
         /// Updates the <see cref="DeMIMOI"/> objects of the collection following its topological order
         /// </summary>
-        public void UpdateAndLatchTopologically()
+        public virtual void UpdateAndLatchTopologically()
         {
             // If the models topology changed from last time
             if (refresh_topological_order == true || topological_order == null)
             {
+                // Refresh the flat collection
+                RefreshFlatCollection();
+
                 // Ask for topological map computation
-                topological_order = ComputeTopologicalMap();
+                topological_order = ComputeTopologicalMap(_flat_collection);
 
                 refresh_topological_order = false;
             }
 
-            if (EnableMultithreading == false)
+            if (topological_order != null)
             {
-                // Updates each model by its topological order (the one(s) which has to give its output first for the next ones to operate on it)
-                foreach(IEnumerable<OrderedProcess> orderedProcessList in topological_order)
+                if (EnableMultithreading == false)
                 {
-                    foreach (OrderedProcess orderedProcess in orderedProcessList)
+                    // Updates each model by its topological order (the one(s) which has to give its output first for the next ones to operate on it)
+                    foreach (IEnumerable<OrderedProcess> orderedProcessList in topological_order)
                     {
-                        int index = int.Parse(orderedProcess.Name);
-                        if (this[index] != null)
+                        foreach (OrderedProcess orderedProcess in orderedProcessList)
                         {
-                            this[index].Update();
-                            this[index].LatchOutputs();
+                            int index = int.Parse(orderedProcess.Name);
+                            if (_flat_collection[index] != null)
+                            {
+                                _flat_collection[index].Update();
+                                _flat_collection[index].LatchOutputs();
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                foreach (IEnumerable<OrderedProcess> orderedProcessList in topological_order)
+                else
                 {
-                    Parallel.ForEach(orderedProcessList, orderedProcess =>
+                    foreach (IEnumerable<OrderedProcess> orderedProcessList in topological_order)
                     {
-                        int index = int.Parse(orderedProcess.Name);
-                        if (this[index] != null)
+                        Parallel.ForEach(orderedProcessList, orderedProcess =>
                         {
-                            this[index].Update();
-                            this[index].LatchOutputs();
-                        }
-                    });
+                            int index = int.Parse(orderedProcess.Name);
+                            if (_flat_collection[index] != null)
+                            {
+                                _flat_collection[index].Update();
+                                _flat_collection[index].LatchOutputs();
+                            }
+                        });
+                    }
+
                 }
-                
             }
         }
 
@@ -293,11 +359,11 @@ namespace DeMIMOI_Models
         /// Computes the topological map of the models contained in the collection
         /// </summary>
         /// <returns>The topological map</returns>
-        private IEnumerable<IEnumerable<OrderedProcess>> ComputeTopologicalMap()
+        private IEnumerable<IEnumerable<OrderedProcess>> ComputeTopologicalMap(IList<IDeMIMOI_Interface> referenceCollection)
         {
             DependencyGraph g = new DependencyGraph();
 
-            OrderedProcess[] models = new OrderedProcess[Count];
+            OrderedProcess[] models = new OrderedProcess[referenceCollection.Count];
             for (int i = 0; i < models.Length; i++)
             {
                 models[i] = new OrderedProcess(g, i.ToString());
@@ -306,9 +372,9 @@ namespace DeMIMOI_Models
             // Navigate through all the models in the collection
             for (int i = 0; i < models.Length; i++)
             {
-                if (this[i] is DeMIMOI)
+                if (referenceCollection[i] is DeMIMOI)
                 {
-                    DeMIMOI model = (DeMIMOI)this[i];
+                    DeMIMOI model = (DeMIMOI)referenceCollection[i];
                     if(model.Inputs != null)
                     {
                         // Through all the inputs of t-i
@@ -317,11 +383,11 @@ namespace DeMIMOI_Models
                             // Through all the delayed inputs
                             for (int k = 0; k < model.Inputs[j].Count; k++)
                             {
-                                // If the model is connected to another one
-                                if (model.Inputs[j][k].ConnectedTo != null)
+                                // If the model is connected to another one and the connection has to be taken into account
+                                if (model.Inputs[j][k].ConnectedTo != null && model.Inputs[j][k].IgnoreConnection == false)
                                 {
                                     // Get the index of that model and check if it's on the collection at the same time
-                                    int connected_index = this.IndexOf(model.Inputs[j][k].ConnectedTo.Parent);
+                                    int connected_index = referenceCollection.IndexOf(model.Inputs[j][k].ConnectedTo.Parent);
                                     // If it's in the collection and that it's not a connection to itself (i.e. cyclic connection)
                                     if (connected_index >= 0 && i != connected_index)
                                     {
@@ -350,7 +416,7 @@ namespace DeMIMOI_Models
                             {
                                 if (model.Outputs[j][k].ConnectedTo != null)
                                 {
-                                    int connected_index = this.IndexOf(model.Outputs[j][k].ConnectedTo.Parent);
+                                    int connected_index = referenceCollection.IndexOf(model.Outputs[j][k].ConnectedTo.Parent);
                                     if (connected_index >= 0 && i != connected_index)
                                     {
                                         if (model.Outputs[j][k].Type == DeMIMOI_InputOutputType.OUTPUT)
@@ -369,14 +435,21 @@ namespace DeMIMOI_Models
                 }
             }
 
-            // Return the topological map
-            return g.CalculateSort();
+            if (models.Length > 0)
+            {
+                // Return the topological map
+                return g.CalculateSort();
+            }
+            else
+            {
+                return null;
+            }
         }
 
         /// <summary>
         /// Publishes all the <see cref="DeMIMOI"/> object outputs of the collection
         /// </summary>
-        public void LatchOutputs()
+        public virtual void LatchOutputs()
         {
             if (EnableMultithreading == false)
             {
@@ -428,6 +501,177 @@ namespace DeMIMOI_Models
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Logical OR definition. Generates a combination of the models present in the two collections
+        /// </summary>
+        /// <param name="lhs">Left operand</param>
+        /// <param name="rhs">Right operand</param>
+        /// <returns>The OR-ed collection</returns>
+        public static DeMIMOI_Collection operator |(DeMIMOI_Collection lhs, DeMIMOI_Collection rhs)
+        {
+            DeMIMOI_Collection res_col = new DeMIMOI_Collection();
+
+            // If the left operand is not null
+            if (lhs != null)
+            {
+                // Give the new collection its name
+                res_col.Name = lhs.Name;
+
+                // Add all the elements present in the left operand after flattening the collection
+                DeMIMOI_Collection flat_coll = FlattenCollection(lhs);
+                res_col.AddRange(flat_coll.ToArray());
+            }
+
+            // If the right operand is not null
+            if (rhs != null)
+            {
+                // If the left operand was not null
+                if (lhs != null)
+                {
+                    // Add the OR text
+                    res_col.Name += " OR ";
+                }
+                // Add the the name of the right operand
+                res_col.Name += rhs.Name;
+
+                // Flatten rhs
+                DeMIMOI_Collection flat_rhs = FlattenCollection(rhs);
+
+                // Go through all the members of the flattened right operand
+                for (int i = 0; i < flat_rhs.Count; i++)
+                {
+                    // If the resulting collection does not already contain the current model
+                    if (res_col.Contains(flat_rhs[i]) == false)
+                    {
+                        // Add it
+                        res_col.Add(flat_rhs[i]);
+                    }
+                }
+            }
+
+            return res_col;
+        }
+        /*        public static DeMIMOI_Collection operator|(DeMIMOI_Collection lhs, DeMIMOI_Collection rhs)
+        {
+            DeMIMOI_Collection res_col = new DeMIMOI_Collection();
+
+            // If the left operand is not null
+            if (lhs != null)
+            {
+                // Give the new collection its name
+                res_col.Name = lhs.Name;
+
+                // Add all the elements present in the left operand
+                res_col.AddRange(lhs);
+            }
+
+            // If the right operand is not null
+            if (rhs != null)
+            {
+                // If the left operand was not null
+                if (lhs != null)
+                {
+                    // Add the OR text
+                    res_col.Name += " OR ";
+                }
+                // Add the the name of the right operand
+                res_col.Name += rhs.Name;
+
+                // Go through all the members of the right operand
+                for(int i = 0;i < rhs.Count;i++)
+                {
+                    // If the model is a collection
+                    if (rhs[i] is DeMIMOI_Collection)
+                    {
+                        DeMIMOI_Collection rhs_coll = ((DeMIMOI_Collection)rhs[i]);
+                        DeMIMOI_Collection rhs_new_coll = SubstituteCollections(rhs_coll);
+                        res_col.Add(rhs_new_coll);
+                    }
+                    else
+                    {
+                        res_col.Add(rhs[i]);
+                    }
+                }
+            }
+            
+
+            return res_col;
+        }*/
+
+        private static DeMIMOI_Collection FlattenCollection(DeMIMOI_Collection collection)
+        {
+            DeMIMOI_Collection res_col = new DeMIMOI_Collection();
+            for (int i = 0; i < collection.Count; i++)
+            {
+                if (collection[i] is DeMIMOI_Collection)
+                {
+                    DeMIMOI_Collection tmp_col = FlattenCollection((DeMIMOI_Collection)collection[i]);
+                    res_col.AddRange(tmp_col.ToArray());
+                }
+                else
+                {
+                    res_col.Add(collection[i]);
+                }
+            }
+
+            return res_col;
+        }
+
+        
+
+        private static void RemoveIdenticals(DeMIMOI_Collection collection)
+        {
+            for (int i = 0; i < collection.Count; i++)
+            {
+                if (collection[i] is DeMIMOI_Collection)
+                {
+
+                }
+                else
+                {
+                    RemoveIdenticals(collection, collection[i]);
+                }
+            }
+        }
+
+        private static void RemoveIdenticals<T>(DeMIMOI_Collection collection, T element_to_find)  where T : IDeMIMOI_Interface
+        {
+            int index = collection.IndexOf(element_to_find);
+            if (index < 0)
+            {
+                for (int i = 0; i < collection.Count; i++)
+                {
+                    if (collection[i] is DeMIMOI_Collection)
+                    {
+                        RemoveIdenticals(((DeMIMOI_Collection)collection[i]));
+                    }
+                }
+            }
+            else
+            {
+
+            }
+        }
+
+        private static DeMIMOI_Collection SubstituteCollections(DeMIMOI_Collection collection)
+        {
+            DeMIMOI_Collection substituted_coll = new DeMIMOI_Collection(collection.Name);
+            for (int i = 0; i < substituted_coll.Count; i++)
+            {
+                if (collection[i] is DeMIMOI_Collection)
+                {
+                    DeMIMOI_Collection substituted_coll_sublevel = SubstituteCollections(((DeMIMOI_Collection)collection[i]));
+                    substituted_coll.Add(substituted_coll_sublevel);
+                }
+                else
+                {
+                    substituted_coll.Add(collection[i]);
+                }
+            }
+
+            return substituted_coll;
         }
 
         /// <summary>

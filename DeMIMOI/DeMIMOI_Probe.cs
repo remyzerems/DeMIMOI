@@ -73,11 +73,18 @@ namespace DeMIMOI_Models
             // Update the probe only if its connected to something
             if (ProbeInput.ConnectedTo != null)
             {
-                // If its value is a value type (double, int, etc)
-                if (ProbeInput.Value.GetType().IsValueType)
+                if (ProbeInput.Value != null)
                 {
-                    // Display its value into the diagram
-                    Name = "= " + ProbeInput.Value;
+                    // If its value is a value type (double, int, etc)
+                    if (ProbeInput.Value.GetType().IsValueType)
+                    {
+                        // Display its value into the diagram
+                        Name = "= " + ProbeInput.Value;
+                    }
+                }
+                else
+                {
+                    Name = "= null";
                 }
             }
         }

@@ -155,6 +155,9 @@ namespace DeMIMOI_Models
 
             // No name (i.e. default name will be used)
             Name = "";
+
+            // Take the connection into account when computing the topological map by default
+            IgnoreConnection = false;
         }
 
         /// <summary>
@@ -269,6 +272,16 @@ namespace DeMIMOI_Models
         }
 
         /// <summary>
+        /// Flag that indicates this connection must not be taken into account when computing the topological map
+        /// </summary>
+        [XmlIgnore]
+        public bool IgnoreConnection
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// DeMIMOI_InputOutput type (input, output...)
         /// </summary>
         public DeMIMOI_InputOutputType Type
@@ -363,6 +376,8 @@ namespace DeMIMOI_Models
 
                     // Disconnect it
                     input.ConnectedTo = null;
+                    // Reset the IgnoreConnection so that it will be taken into account for the new connection it may have in the future
+                    input.IgnoreConnection = false;
 
                     // If event signalling is required
                     if (input.Disconnected != null)

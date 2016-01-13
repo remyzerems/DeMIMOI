@@ -71,12 +71,36 @@ namespace DeMIMOI_Controls
 
             // Delete any chart area
             Chart.ChartAreas.Clear();
+            // Delete any legends
+            Chart.Legends.Clear();
+
+            // Hook on double clicks
+            Chart.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(Chart_MouseDoubleClick);
 
             // Add as many series that we have inputs
             for (int i = 0; i < input_port.IODelayCount.Length; i++)
             {
                 // Create a chart area for each input
-                Chart.ChartAreas.Add("zone" + i);
+                string chartarea_name = "zone" + i;
+                Chart.ChartAreas.Add(chartarea_name);
+                
+                // Zoom management
+                Chart.ChartAreas[chartarea_name].CursorX.IsUserSelectionEnabled = true;
+                Chart.ChartAreas[chartarea_name].CursorY.IsUserSelectionEnabled = true;
+                Chart.ChartAreas[chartarea_name].AxisX.ScaleView.Zoomable = true;
+                Chart.ChartAreas[chartarea_name].AxisX.ScrollBar.IsPositionedInside = true;
+                Chart.ChartAreas[chartarea_name].AxisY.ScaleView.Zoomable = true;
+                Chart.ChartAreas[chartarea_name].AxisY.ScrollBar.IsPositionedInside = true;
+
+                string legends_name = "Legends" + i;
+                Chart.Legends.Add(legends_name);
+                
+                Chart.Legends[legends_name].DockedToChartArea = chartarea_name;
+                // Put the legend text on the bottom of the chart
+                Chart.Legends[legends_name].Docking = Docking.Bottom;
+                // And outside of the chart area, then centered horizontally
+                Chart.Legends[legends_name].IsDockedInsideChartArea = false;
+                Chart.Legends[legends_name].Alignment = System.Drawing.StringAlignment.Center;
 
                 // For each delayed input, create a series on this zone
                 for (int j = 0; j < input_port.IODelayCount[i]; j++)
@@ -84,17 +108,29 @@ namespace DeMIMOI_Controls
                     string series_name = "Series" + i + "_" + j;
                     Chart.Series.Add(series_name);
                     Chart.Series[series_name].ChartType = SeriesChartType.Line;
-                    Chart.Series[series_name].ChartArea = "zone" + i;
+                    Chart.Series[series_name].ChartArea = chartarea_name;
+                    Chart.Series[series_name].ToolTip = "#SERIESNAME (#VALX,#VALY)";
+
+                    // Assign the legends to the series
+                    Chart.Series[series_name].Legend = legends_name;
                 }
             }
-            // Put the legend text on the bottom of the chart
-            Chart.Legends[0].Docking = Docking.Bottom;
 
             // Set the timestep unit to 1 (i.e. the default unit is steps)
             TimestepUnit = 1.0;
 
             // Subscribe to the connection event to be notified when an input of the model is connected
             Connected += new DeMIMOI_ConnectionEventHandler(DeMIMOI_Chart_Connected);
+        }
+
+        void Chart_MouseDoubleClick(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            // Remove any zooming in all chart areas
+            foreach (ChartArea ca in Chart.ChartAreas)
+            {
+                ca.AxisX.ScaleView.ZoomReset();
+                ca.AxisY.ScaleView.ZoomReset();
+            }
         }
 
         void DeMIMOI_Chart_Connected(object sender, DeMIMOI_ConnectionEventArgs e)
@@ -117,7 +153,7 @@ namespace DeMIMOI_Controls
                         else
                         {
                             int[] indexes = DeMIMOI_InputOutput.GetInputOutputIndexes(e.From);
-                            series_name += "o" + indexes[0] + "(t" + (indexes[1] == 0 ? "" : "-" + indexes[1]);
+                            series_name += "o" + indexes[0] + "(t" + (indexes[1] == 0 ? "" : "-" + indexes[1]) + ")";
                         }
 
                         Chart.Series[seriesIndex].Name = series_name;

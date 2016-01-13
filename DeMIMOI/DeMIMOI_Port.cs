@@ -52,14 +52,19 @@ namespace DeMIMOI_Models
 
         public DeMIMOI_Port Add(params int[] new_io_delay_count)
         {
-            int[] newIODelayCount = new int[IODelayCount.Length + new_io_delay_count.Length];
-            for (int i = 0; i < IODelayCount.Length; i++)
+            int curLength = 0;
+            if (IODelayCount != null)
+            {
+                curLength = IODelayCount.Length;
+            }
+            int[] newIODelayCount = new int[curLength + new_io_delay_count.Length];
+            for (int i = 0; i < curLength; i++)
             {
                 newIODelayCount[i] = IODelayCount[i];
             }
             for (int i = 0; i < new_io_delay_count.Length; i++)
             {
-                newIODelayCount[IODelayCount.Length + i] = new_io_delay_count[i];
+                newIODelayCount[curLength + i] = new_io_delay_count[i];
             }
 
             return new DeMIMOI_Port(newIODelayCount);
