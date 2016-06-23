@@ -72,7 +72,14 @@ namespace DeMIMOI_Models
 
         public DeMIMOI_Port Add(DeMIMOI_Port new_input_output_port)
         {
-            return Add(new_input_output_port.IODelayCount);
+            if (new_input_output_port != null)
+            {
+                return Add(new_input_output_port.IODelayCount);
+            }
+            else
+            {
+                return this;
+            }
         }
 
     }

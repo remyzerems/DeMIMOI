@@ -27,6 +27,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using TopologicalSorting;
 using System.Collections;
+using System.Windows.Forms;
 
 namespace DeMIMOI_Models
 {
@@ -37,12 +38,41 @@ namespace DeMIMOI_Models
     public class DeMIMOI_Collection : IList<IDeMIMOI_Interface>, IDeMIMOI_Interface
     {
         static int current_id = 0; // Current ID to allocate to a new DeMIMOI_Collection object
+        static DeMIMOI_CollectionVizForm vizForm = null;
         /// <summary>
         /// Allocates a new DeMIMOI_Collection ID
         /// </summary>
         private static int AllocNewId()
         {
             return current_id++;
+        }
+
+        public static List<DeMIMOI_Collection> Instances
+        {
+            get;
+            set;
+        }
+        
+        public static void ShowVizInterface()
+        {
+            ShowVizInterface(FormWindowState.Normal);
+        }
+        public static void ShowVizInterface(FormWindowState windowState)
+        {
+            if (vizForm == null)
+            {
+                vizForm = new DeMIMOI_CollectionVizForm();
+            }
+            vizForm.Show();
+            vizForm.WindowState = windowState;
+        }
+        public static void CloseVizInterface()
+        {
+            if (vizForm != null)
+            {
+                vizForm.Close();
+                vizForm.Dispose();
+            }
         }
 
         private IList<IDeMIMOI_Interface> _collection;
@@ -62,9 +92,17 @@ namespace DeMIMOI_Models
         {
             ID = AllocNewId();
             Name = "DeMIMOI_Collection_" + ID;
+            
+            if (Instances == null)
+            {
+                Instances = new List<DeMIMOI_Collection>();
+            }
+            Instances.Add(this);
 
             _collection = new List<IDeMIMOI_Interface>();
             _flat_collection = new List<IDeMIMOI_Interface>();
+
+            IsAfter = new List<KeyValuePair<DeMIMOI, DeMIMOI>>();
         }
 
         #region Implementation of IEnumerable
@@ -102,9 +140,9 @@ namespace DeMIMOI_Models
         public void Clear()
         {
             // Clear the collection by calling the Remove function so to execute some specific instructions
-            foreach (IDeMIMOI_Interface item in _collection)
+            for (int i = 0; i < _collection.Count;i++)
             {
-                _collection.Remove(item);
+                _collection.RemoveAt(0);
             }
         }
 
@@ -432,6 +470,24 @@ namespace DeMIMOI_Models
                             }
                         }
                     }
+
+                    // Process the user defined rules that says "this model is after this one"
+                    // Go through all "this model is after this one" pairs
+                    foreach(KeyValuePair<DeMIMOI, DeMIMOI> kp in IsAfter)
+                    {
+                        // If the current model has a specific rule
+                        if (kp.Key == model)
+                        {
+                            // Search the paired model in the collection
+                            int connected_index = referenceCollection.IndexOf(kp.Value);
+                            // If found
+                            if (connected_index >= 0 && i != connected_index)
+                            {
+                                // Specify the order relation
+                                models[i].After(models[connected_index]);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -672,6 +728,16 @@ namespace DeMIMOI_Models
             }
 
             return substituted_coll;
+        }
+
+        /// <summary>
+        /// List that specifies that one DeMIMOI has to be updated after another one.
+        /// <remarks>This is useful for example when one system is represented by two DeMIMOIs, one is the input, the second the output. One should start by updating the inputs first, outputs in the end...IsAfter must be used to specify this.</remarks>
+        /// </summary>
+        public List<KeyValuePair<DeMIMOI, DeMIMOI>> IsAfter
+        {
+            get;
+            set;
         }
 
         /// <summary>

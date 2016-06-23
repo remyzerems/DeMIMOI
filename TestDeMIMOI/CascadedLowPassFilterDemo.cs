@@ -129,6 +129,11 @@ namespace TestDeMIMOI
             // Display the graphviz code result of this models combination
             textBox1.Text = lpf_cascade.GraphVizFullCode();
 
+            // Show the DeMIMOI objects interface
+            DeMIMOI.ShowVizInterface();
+            // Show the DeMIMOI Collections interface
+            DeMIMOI_Collection.ShowVizInterface();
+
             // Enable the timer to run the filter animation
             timer1.Enabled = true;
         }

@@ -24,6 +24,9 @@ using System;
 
 namespace DeMIMOI_Controls
 {
+    // Delegate to handle thread-safe update of the Chart
+    delegate void UpdateChartCallback(double[] xValues, double[] yValues);
+
     /// <summary>
     /// DeMIMOI Chart class to manage charts
     /// </summary>
@@ -92,6 +95,9 @@ namespace DeMIMOI_Controls
                 Chart.ChartAreas[chartarea_name].AxisY.ScaleView.Zoomable = true;
                 Chart.ChartAreas[chartarea_name].AxisY.ScrollBar.IsPositionedInside = true;
 
+                // Allow the graph not to start from 0 but to focus on the values to display
+                Chart.ChartAreas[chartarea_name].AxisY.IsStartedFromZero = false;
+
                 string legends_name = "Legends" + i;
                 Chart.Legends.Add(legends_name);
                 
@@ -107,7 +113,7 @@ namespace DeMIMOI_Controls
                 {
                     string series_name = "Series" + i + "_" + j;
                     Chart.Series.Add(series_name);
-                    Chart.Series[series_name].ChartType = SeriesChartType.Line;
+                    Chart.Series[series_name].ChartType = SeriesChartType.FastLine;
                     Chart.Series[series_name].ChartArea = chartarea_name;
                     Chart.Series[series_name].ToolTip = "#SERIESNAME (#VALX,#VALY)";
 
@@ -188,18 +194,61 @@ namespace DeMIMOI_Controls
             set;
         }
 
+        /// <summary>
+        /// Updates thread-safely the chart
+        /// </summary>
+        /// <param name="xValues">Abscissa values</param>
+        /// <param name="yValues">Ordinate values</param>
+        void UpdateChart(double[] xValues, double[] yValues)
+        {
+            if (this.Chart.InvokeRequired)
+            {
+                if (Chart.Parent != null)
+                {
+                    UpdateChartCallback d = new UpdateChartCallback(UpdateChart);
+                    Chart.Parent.Invoke(d, new object[] { xValues, yValues });
+                }
+            }
+            else
+            {
+                int seriesIndex = 0;
+
+                for (int i = 0; i < Inputs.Count; i++)
+                {
+                    for (int j = 0; j < Inputs[i].Count; j++)
+                    {
+                        if (Chart.Series != null)
+                        {
+                            if (seriesIndex < Chart.Series.Count)
+                            {
+                                Chart.Series[seriesIndex].Points.AddXY(UpdateCount * TimestepUnit, Convert.ToDouble(Inputs[i][j].Value));
+                            }
+                        }
+                        seriesIndex++;
+                    }
+                }
+            }
+        }
+
         protected override void UpdateInnerSystem(ref List<DeMIMOI_InputOutput> new_outputs)
         {
-            int seriesIndex = 0;
-            
+            // Prepare inputs to send to the thread-safe process
+            List<double> xValues, yValues;
+            xValues = new List<double>();
+            yValues = new List<double>();
+
             for (int i = 0; i < Inputs.Count; i++)
             {
                 for (int j = 0; j < Inputs[i].Count; j++)
                 {
-                    Chart.Series[seriesIndex].Points.AddXY(UpdateCount * TimestepUnit, Convert.ToDouble(Inputs[i][j].Value));
-                    seriesIndex++;
+                    xValues.Add(UpdateCount * TimestepUnit);
+                    yValues.Add(Convert.ToDouble(Inputs[i][j].Value));
                 }
             }
+
+            // Thread-safely update the chart using the pre-calculated values
+            UpdateChart(xValues.ToArray(), yValues.ToArray());
+
         }
     }
 }

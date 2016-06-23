@@ -26,9 +26,9 @@ namespace DeMIMOI_Models
     /// </summary>
     public class DeMIMOI_Probe:DeMIMOI
     {
-        static int current_id = 0; // Current ID to allocate to a new DeMIMOI_RegressionLearner object
+        static int current_id = 0; // Current ID to allocate to a new DeMIMOI_Probe object
         /// <summary>
-        /// Allocates a new DeMIMOI_RegressionLearner ID
+        /// Allocates a new DeMIMOI_Probe ID
         /// </summary>
         private static int AllocNewId()
         {

@@ -24,9 +24,13 @@ using System;
 using System.Windows.Forms;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace DeMIMOI_Controls
 {
+    // Delegate to handle thread-safe update of the PictureBox
+    delegate void UpdatePictureBoxCallback(int index, Bitmap bmp);
+
     /// <summary>
     /// DeMIMOI PictureBox class to manage images
     /// </summary>
@@ -43,7 +47,7 @@ namespace DeMIMOI_Controls
             return current_id++;
         }
 
-        Graphics[] graphics = null;
+       public Graphics[] graphics = null;
         //Bitmap[] bitmaps = null;
 
         void Initialize(int inputCount, PictureBox[] pictureBoxes)
@@ -110,6 +114,37 @@ namespace DeMIMOI_Controls
             set;
         }
 
+        /// <summary>
+        /// Updates thread-safely the chart
+        /// </summary>
+        /// <param name="index">Index of the picturebox to update</param>
+        /// <param name="bmp">Bitmap to display</param>
+        void UpdatePictureBox(int index, Bitmap bmp)
+        {
+            if (this.PictureBoxes[index].InvokeRequired)
+            {
+                if (PictureBoxes[index].Parent != null)
+                {
+                    UpdatePictureBoxCallback d = new UpdatePictureBoxCallback(UpdatePictureBox);
+                    if (PictureBoxes[index].Parent.Disposing == false)
+                    {
+                        PictureBoxes[index].Parent.Invoke(d, new object[] { index, bmp });
+                    }
+                }
+            }
+            else
+            {
+                try
+                {
+                    graphics[index].DrawImage(bmp, PictureBoxes[index].DisplayRectangle);
+                }
+                catch (ExternalException extExc)
+                {
+                    // Ignore this error for a start...
+                }
+            }
+        }
+
         protected override void UpdateInnerSystem(ref List<DeMIMOI_InputOutput> new_outputs)
         {
             for (int i = 0; i < PictureBoxes.Length; i++)
@@ -121,7 +156,8 @@ namespace DeMIMOI_Controls
                         if (Inputs[i][0].Value != null)
                         {
                             Bitmap img = (Bitmap)Inputs[i][0].Value;
-                            graphics[i].DrawImage(img, PictureBoxes[i].DisplayRectangle);
+                            //graphics[i].DrawImage(img, PictureBoxes[i].DisplayRectangle);
+                            UpdatePictureBox(i, img);
                         }
                     }
                 }

@@ -49,6 +49,8 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -62,13 +64,40 @@
   <ItemGroup>
     <Compile Include="DeMIMOI.cs" />
     <Compile Include="DeMIMOI_Collection.cs" />
+    <Compile Include="DeMIMOI_Constant.cs" />
     <Compile Include="DeMIMOI_Delegate.cs" />
     <Compile Include="DeMIMOI_InputOutput.cs" />
     <Compile Include="DeMIMOI_Persistence.cs" />
     <Compile Include="DeMIMOI_Port.cs" />
     <Compile Include="DeMIMOI_Probe.cs" />
+    <Compile Include="DeMIMOI_CollectionVizForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DeMIMOI_CollectionVizForm.Designer.cs">
+      <DependentUpon>DeMIMOI_CollectionVizForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DeMIMOI_VizForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DeMIMOI_VizForm.Designer.cs">
+      <DependentUpon>DeMIMOI_VizForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="IDeMIMOI_Interface.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="DeMIMOI_CollectionVizForm.resx">
+      <DependentUpon>DeMIMOI_CollectionVizForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DeMIMOI_VizForm.resx">
+      <DependentUpon>DeMIMOI_VizForm.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\GraphVizDotNetLib\GraphVizDotNetLib\GraphVizDotNetLib.csproj">
+      <Project>{F0585B00-0B71-4648-983C-F09719C1EA1F}</Project>
+      <Name>GraphVizDotNetLib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

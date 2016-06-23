@@ -18,6 +18,7 @@ It's more or less close to the Matlab Simulink approach combined to the power of
 * Topological order update to update each model following their dependencies ([thank you Martin !](https://github.com/martindevans/TopologicalSorting))
 * Connection/Disconnection events available
 * GraphViz code is available for each model to help visualize the models and their connections ([See an example](https://aiaddict.files.wordpress.com/2015/12/al5c-sensory-motor-sample-application.png))
+* Monitoring windows to directly see your model structure and your models properties
 * Windows Form controls mapping support :
   * DeMIMOI_Chart to plot data produced by other models
   * DeMIMOI_PictureBox to display images coming from other models
@@ -63,7 +64,7 @@ Then just call the update function of the model each time you present the model 
 By2Multiplier myBy2Multiplier = new By2Multiplier();
 // Set the input to 5.0
 myBy2Multiplier.Inputs[0][0].Value = 5.0;
-// Update the filter and latch the outputs
+// Update the multiplier and latch the outputs
 myBy2Multiplier.UpdateAndLatch();
 ```
 You can access the calculated output.

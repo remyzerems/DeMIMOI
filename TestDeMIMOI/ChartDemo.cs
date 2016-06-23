@@ -73,6 +73,9 @@ namespace TestDeMIMOI
 
             // Generate the graphviz code if we want to give a look of the system architecture
             textBox1.Text = collection.GraphVizFullCode();
+
+            // Show the DeMIMOI Collections interface
+            DeMIMOI_Collection.ShowVizInterface();
         }
 
         private void timer1_Tick(object sender, EventArgs e)

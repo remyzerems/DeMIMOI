@@ -24,6 +24,8 @@ using System.Text;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
+using System.ComponentModel;
+using System.Globalization;
 
 namespace DeMIMOI_Models
 {
@@ -41,6 +43,7 @@ namespace DeMIMOI_Models
     /// DeMIMOI Input or Output class
     /// </summary>
     [Serializable]
+    [TypeConverter(typeof(DeMIMOI_InputOutputConverter))]
     public class DeMIMOI_InputOutput
     {
         static int current_id = 0; // Current ID to allocate to a new DeMIMOI_InputOutput object
@@ -195,7 +198,8 @@ namespace DeMIMOI_Models
             Parent = parent;
         }
 
-
+        [DescriptionAttribute("DeMIMOI_InputOutput ID"),
+        CategoryAttribute("General")]
         /// <summary>
         /// DeMIMOI_InputOutput ID
         /// </summary>
@@ -205,6 +209,8 @@ namespace DeMIMOI_Models
             set;
         }
 
+        [DescriptionAttribute("DeMIMOI_InputOutput name"),
+        CategoryAttribute("General")]
         /// <summary>
         /// DeMIMOI_InputOutput name
         /// </summary>
@@ -251,6 +257,7 @@ namespace DeMIMOI_Models
             }
         }
 
+        [BrowsableAttribute(false)]
         /// <summary>
         /// DeMIMOI object on which this DeMIMOI_InputOutput is included and used
         /// </summary>
@@ -261,6 +268,8 @@ namespace DeMIMOI_Models
             protected set;
         }
 
+        [DescriptionAttribute("Output DeMIMOI_InputOutput to which an Input DeMIMOI_InputOutput is connected"),
+        CategoryAttribute("Connections")]
         /// <summary>
         /// Output DeMIMOI_InputOutput to which an Input DeMIMOI_InputOutput is connected
         /// </summary>
@@ -271,6 +280,7 @@ namespace DeMIMOI_Models
             protected set;
         }
 
+        [BrowsableAttribute(false)]
         /// <summary>
         /// Flag that indicates this connection must not be taken into account when computing the topological map
         /// </summary>
@@ -281,6 +291,8 @@ namespace DeMIMOI_Models
             set;
         }
 
+        [DescriptionAttribute("DeMIMOI_InputOutput type (input, output...)"),
+        CategoryAttribute("General")]
         /// <summary>
         /// DeMIMOI_InputOutput type (input, output...)
         /// </summary>
@@ -422,6 +434,64 @@ namespace DeMIMOI_Models
             }
 
             return new_one;
+        }
+
+
+
+        /*internal class DeMIMOI_InputOutputConverter : TypeConverter
+        {
+
+            public override PropertyDescriptorCollection
+            GetProperties(ITypeDescriptorContext context,
+                     object value,
+                     Attribute[] filter)
+            {
+                return TypeDescriptor.GetProperties(value, filter);
+            }
+
+            public override bool GetPropertiesSupported(
+                     ITypeDescriptorContext context)
+            {
+                return true;
+            }
+        }*/
+
+        internal class DeMIMOI_InputOutputConverter : ExpandableObjectConverter
+        {
+
+            public override bool CanConvertFrom(
+                  ITypeDescriptorContext context, Type t)
+            {
+
+                /*if (t == typeof(double))
+                {
+                    return true;
+                }*/
+                return base.CanConvertFrom(context, t);
+            }
+
+            public override object ConvertFrom(
+                  ITypeDescriptorContext context,
+                  CultureInfo info,
+                   object value) {
+
+              return base.ConvertFrom(context, info, value);
+           }
+
+            public override object ConvertTo(
+                     ITypeDescriptorContext context,
+                     CultureInfo culture,
+                     object value,
+                     Type destType)
+            {
+                if (destType == typeof(string) && value is DeMIMOI_InputOutput)
+                {
+                    DeMIMOI_InputOutput p = (DeMIMOI_InputOutput)value;
+
+                    return "" + p.Value;
+                }
+                return base.ConvertTo(context, culture, value, destType);
+            }
         }
     }
 

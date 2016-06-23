@@ -23,6 +23,8 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using System.IO;
+using System.Windows.Forms;
+using System.ComponentModel;
 
 namespace DeMIMOI_Models
 {
@@ -32,7 +34,7 @@ namespace DeMIMOI_Models
     [Serializable]
     public abstract class DeMIMOI : IDeMIMOI_Interface
     {
-
+        static DeMIMOI_VizForm vizForm = null;
         static int current_id = 0;  // Current ID to allocate to a new DeMIMOI object
         /// <summary>
         /// Allocates a new DeMIMOI ID
@@ -43,6 +45,25 @@ namespace DeMIMOI_Models
             return current_id++;
         }
 
+        public static List<DeMIMOI> Instances
+        {
+            get;
+            set;
+        }
+
+        public static void ShowVizInterface()
+        {
+            ShowVizInterface(FormWindowState.Normal);
+        }
+        public static void ShowVizInterface(FormWindowState windowState)
+        {
+            if (vizForm == null)
+            {
+                vizForm = new DeMIMOI_VizForm();
+            }
+            vizForm.Show();
+            vizForm.WindowState = windowState;
+        }
 
         List<DeMIMOI_InputOutput> CurrentOutputs;
         List<DeMIMOI_InputOutput> CurrentInputs;
@@ -120,7 +141,13 @@ namespace DeMIMOI_Models
             ID = AllocNewId();
             Name = GetType().Name + "_" + ID;
             Description = "";
-            
+
+            if (Instances == null)
+            {
+                Instances = new List<DeMIMOI>();
+            }
+            Instances.Add(this);
+
             // Initialize inputs and outputs arrays
             InitializeInputs(input_port);
             InitializeOutputs(output_port);
@@ -286,6 +313,8 @@ namespace DeMIMOI_Models
             }
         }
 
+        [DescriptionAttribute("The inputs of the DeMIMOI system"),
+        CategoryAttribute("Inputs/Outputs")]
         /// <summary>
         /// The inputs of the DeMIMOI system
         /// </summary>
@@ -295,6 +324,8 @@ namespace DeMIMOI_Models
             set;
         }
 
+        [DescriptionAttribute("The outputs of the DeMIMOI system"),
+        CategoryAttribute("Inputs/Outputs")]
         /// <summary>
         /// The outputs of the DeMIMOI system
         /// </summary>
@@ -368,6 +399,8 @@ namespace DeMIMOI_Models
             LatchOutputs();
         }
 
+        [DescriptionAttribute("Represents how many times the system has been updated"),
+        CategoryAttribute("Statistics")]
         /// <summary>
         /// Represents how many times the system has been updated
         /// </summary>
@@ -377,6 +410,8 @@ namespace DeMIMOI_Models
             set;
         }
 
+        [DescriptionAttribute("Represents how many times the system outputs have been latched"),
+        CategoryAttribute("Statistics")]
         /// <summary>
         /// Represents how many times the system outputs have been latched
         /// </summary>
@@ -395,6 +430,8 @@ namespace DeMIMOI_Models
             LatchOutputsCount++;
         }
 
+        [DescriptionAttribute("Number of inputs of the system"),
+        CategoryAttribute("Inputs/Outputs")]
         /// <summary>
         /// Number of inputs of the system
         /// </summary>
@@ -424,6 +461,8 @@ namespace DeMIMOI_Models
             set;
         }*/
 
+        [DescriptionAttribute("Number of outputs of the system"),
+        CategoryAttribute("Inputs/Outputs")]
         /// <summary>
         /// Number of outputs of the system
         /// </summary>
@@ -453,6 +492,8 @@ namespace DeMIMOI_Models
             set;
         }*/
 
+        [DescriptionAttribute("DeMIMOI unique ID number"),
+        CategoryAttribute("General")]
         /// <summary>
         /// DeMIMOI ID number (distinct number for each DeMIMOI object)
         /// </summary>
@@ -462,6 +503,8 @@ namespace DeMIMOI_Models
             set;
         }
 
+        [DescriptionAttribute("Name of the DeMIMOI object"),
+        CategoryAttribute("General")]
         /// <summary>
         /// Name of the DeMIMOI object
         /// </summary>
@@ -471,6 +514,8 @@ namespace DeMIMOI_Models
             set;
         }
 
+        [DescriptionAttribute("Description of the DeMIMOI object"),
+        CategoryAttribute("General")]
         /// <summary>
         /// Description of the DeMIMOI object
         /// </summary>
@@ -565,7 +610,7 @@ namespace DeMIMOI_Models
                     }
                     inputName += ")";
 
-                    if (name.Replace(" ", "") == inputName)
+                    if (name.Replace(" ", "") == inputName.Replace(" ", ""))
                     {
                         ret = inputs_outputs[i][j];
                         break;
@@ -596,7 +641,7 @@ namespace DeMIMOI_Models
         /// <returns>The GraphViz code</returns>
         public string GraphVizFullCode()
         {
-            string code = "digraph " + GetType().Name + " {\n\trankdir=LR;\n\tranksep=1.25;\n\tedge [ fontcolor=red, fontsize=9, fontname=\"Times-Roman italic\" ];\n";
+            string code = "digraph " + GetType().Name.Replace("`", "_") + " {\n\trankdir=LR;\n\tranksep=1.25;\n\tedge [ fontcolor=red, fontsize=9, fontname=\"Times-Roman italic\" ];\n";
             code += GraphVizCode();
             code += "}";
 
