@@ -47,6 +47,10 @@
     <OutputPath>bin\x86\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="GraphVizDotNetLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Externals\GraphVizDotNetLib\GraphVizDotNetLib.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -92,12 +96,6 @@
     <EmbeddedResource Include="DeMIMOI_VizForm.resx">
       <DependentUpon>DeMIMOI_VizForm.cs</DependentUpon>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\GraphVizDotNetLib\GraphVizDotNetLib\GraphVizDotNetLib.csproj">
-      <Project>{F0585B00-0B71-4648-983C-F09719C1EA1F}</Project>
-      <Name>GraphVizDotNetLib</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
